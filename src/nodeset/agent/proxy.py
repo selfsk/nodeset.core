@@ -1,11 +1,20 @@
-from foolscap.api import Referenceable
+from foolscap.api import Referenceable, RemoteCopy
 from nodeset.agent.api import AgentAPI
+
+import random
 
 class ApiProxy(Referenceable):
     
     def __init__(self):
         self.agent_api = AgentAPI()
         
+    def remote_getRandomPortFor(self, name):
+        if self.agent_api.hasService(name):
+            raise Exception("Such service(%s) already running" % name)
+        else:
+            # TODO: do check for random port somehow
+            return random.randint(32678, 65353)
+    
     def remote_getList(self):
         return self.agent_api.getServices()
     

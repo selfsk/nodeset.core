@@ -4,6 +4,8 @@ from twisted.python import usage
 from twisted.python.util import switchUID, uidFromString, gidFromString
 #from twisted.python.runtime import platformType
 
+import sys
+
 from twisted.scripts._twistd_unix import ServerOptions, \
             UnixApplicationRunner as _SomeApplicationRunner, _umask
     
