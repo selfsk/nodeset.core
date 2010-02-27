@@ -13,51 +13,53 @@ class RAgentService(RemoteCopy):
 class AgentService(Copyable):
     typeToCopy = copytype = 'nodeset-agent-service-instance'
     
-    def __init__(self, name):
+    def __init__(self, tub, name):
         self.name = name
-
-        # get Tub for foolscap calls
-        self.tub = Tub()
-
-        #self.tub.startService()
+        self.furl = None
+        
+        # agent's remote reference
+        self.remote = None
+        
         self.observers = []
         
-        d = self.tub.getReference("pbu://localhost:5333/api")
-
-        d.addCallback(self._gotAgentApi).addErrback(self._errCb)
-        self.remote = None
+        #d = tub.getReference("pbu://localhost:5333/api")
+        #d.addCallback(self._gotAgentApi).addErrback(self._errCb)
+        
         
         #self.tub.startService()
     def getStateToCopy(self):
         d = {'name': self.name,
-             'tubId': self.tub.getTubID(),
-             'methods': ['start', 'stop']}
+             'furl': self.furl}
         
         return d
     
     def _initListenTub(self, port):
-        self.tub.listenOn('tcp:%d' % port)
-        self.tub.setLocation('localhost:%d' % port)
-        url = self.tub.registerReference(self, self.name)
-        print "FURL %s" % url
+        self.port = port
+        
+        # create listen Tub() for events from agent
+        tub = Tub()
+        tub.listenOn('tcp:%d' % self.port)
+        tub.setLocation('localhost:%d' % self.port)
+        url = tub.registerReference(self, self.name)
+
+        self.furl = url
         
     def _gotAgentApi(self, remote):
-        self.remote = remote
         d = self.remote.callRemote("getRandomPortFor", self.name)
-        d.addCallback(self._initListenTub).addErrback(self._errCb).addCallback(self.start)
+        d.addCallback(self._initListenTub).addErrback(self._errCb)
         
     def _errCb(self, failure):
         print "Error %s" % str(failure)
         
-    def start(self, stub):
+    def start(self):
         # register self on agent and perform remain job for service starting
-        self.remote.callRemote("registerService", self)
+        #self.remote.callRemote("registerService", self)
         
         # delegate event to observer
         self.onEvent('start', self)
     
     def stop(self):
-        self.remote.callRemote("unregisterService", self)
+        #self.remote.callRemote("unregisterService", self)
         self.onEvent('stop', self)
     
     def status(self):
@@ -68,7 +70,7 @@ class AgentService(Copyable):
         """
         
         for o in self.observers:
-            o.dispatch(event, *args, **kwargs)
+            o.dispatch(event, self, *args, **kwargs)
             
     def addObserver(self, observer):
         self.observers.append(observer)

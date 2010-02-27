@@ -18,7 +18,10 @@ setup(
     entry_points = {
                     'console_scripts': [
                                         'nodeset-agent = nodeset.agent:run_agent', 
-                                        'nodeset-service = nodeset.agent:run_service']},
+                                        'nodeset-service = nodeset.agent:run_service',
+                                        'nodeset-dispatcher = nodeset.agent:run_dispatcher',
+                                        'nodeset-node-subscribe = nodeset.agent:run_node',
+                                        'nodeset-node-publish = nodeset.agent:run_node1']},
     
     # metadata for upload to PyPI
     description = "NodeSet framework",

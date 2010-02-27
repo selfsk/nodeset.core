@@ -2,12 +2,15 @@
 import api
 import proxy
 
-from foolscap.api import UnauthenticatedTub
+from foolscap.api import UnauthenticatedTub, Tub
 from twisted.application import service as ts
+from twisted.internet import reactor
 
 from proxy import ApiProxy
 from nodeset.common.twistedapi import run
 from nodeset.agent.service import AgentService
+
+from nodeset.core import node
 
 class AgentInstance(object):
     
@@ -31,10 +34,35 @@ def run_agent():
 
 
 def run_service():
-    s = AgentService('simple_service')
+    tub = Tub()
+    s = AgentService('simple_service', tub)
     
+
     
     application = ts.Application('nodeset-service')
     s.tub.setServiceParent(application)
     
+    return run(application)
+
+def run_dispatcher():
+    d = node.EventDispatcher()
+    application = ts.Application('nodeset-dispatcher')
+    d.tub.setServiceParent(application)
+    
+    return run(application)
+
+def run_node():
+    n = node.Node(5334)
+    application = ts.Application('nodeset-node')
+    n.tub.setServiceParent(application)
+    
+    reactor.callLater(1, n.subscribe, 'simple_event')
+    return run(application)
+
+def run_node1():
+    n = node.Node(5335)
+    application = ts.Application('nodeset-node')
+    n.tub.setServiceParent(application)
+    
+    reactor.callLater(3, n.publish, 'simple_event', 'hello world')
     return run(application)
