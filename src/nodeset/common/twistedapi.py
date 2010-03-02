@@ -11,6 +11,9 @@ from twisted.scripts._twistd_unix import ServerOptions, \
     
 
 class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
+    """
+    Copy of L{ServerOptions}, but without all twistd options.
+    """
     
     optFlags = [['nodaemon','n',  "don't daemonize, don't use default umask of 0077"],
                 ['quiet', 'q', "No-op for backwards compatibility."],
@@ -53,21 +56,39 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
         self['debug'] = False
         usage.Options.__init__(self, *a, **kw)
         
-        # set default twisted option to default values
+        # set some twisted option to default values
         self['no_save'] = True
         
 class NodeSetApplicationRunner(_SomeApplicationRunner):
-    
+    """
+    Adoption of L{_SomeApplicationRunner} for NodeSet, createOrGetApplication redefined only
+    """
     def createOrGetApplication(self):
+        """
+        Modified to return application instance, early defined
+        """
         return self.application
     
 def runApp(config, application):
-       runner = NodeSetApplicationRunner(config)
-       runner.application = application
+    """
+    twistd runApp modified, added second argument application
+    @param config: run option (--option i.e.)
+    @type config: NodeSetAppOptions
+    @param applicatin: application instance
+    @type application: Application
+    """
+    runner = NodeSetApplicationRunner(config)
+    runner.application = application
    
-       runner.run()
+    runner.run()
 
 def _run(runApp, ServerOptions, application):
+    """
+    instead of run, to handle additional option
+    @param runApp: runApp func
+    @param ServerOptions: class for options parsing
+    @type ServerOptions: NodeSetAppOptions
+    """
     config = ServerOptions()
     #config['no_save'] = False
     try:
@@ -79,7 +100,12 @@ def _run(runApp, ServerOptions, application):
         runApp(config, application)
         
 def run(application):
-       _run(runApp, NodeSetAppOptions, application)
+    """
+    wrapper for _run, application instance added
+    @param application: Application instance
+    @type application: Application
+    """
+    _run(runApp, NodeSetAppOptions, application)
    
    
 __all__ = ['run', 'runApp']
