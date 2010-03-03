@@ -78,7 +78,7 @@ class RoutingTable:
             
         # and then lookup by object instance
         if node:
-            return [x for x in ns if ns.getNode() == node]
+            return [x for x in ns if x.getNode() == node]
         
         return ns 
         
@@ -112,8 +112,9 @@ class RoutingTable:
         @raise KeyError
         """
         
-        node = self._lookup(event_uri, node)
-        self.entries[event_name].remove(node)
+        nodes = self._lookup(event_uri, node)
+        for n in node:
+            self.entries.remove(n)
         
 class RouteEntry:
     """
