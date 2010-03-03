@@ -1,6 +1,8 @@
 from foolscap.api import Referenceable, Tub, Copyable, UnauthenticatedTub, RemoteCopy
 from uuid import uuid4
 
+from nodeset.core import routing
+
 class NodeEvent(Copyable, RemoteCopy):
     """
     Copyable object for events, for safe objects exchange between nodes
@@ -27,7 +29,7 @@ class EventDispatcher(Referenceable):
     on this dispatcher, too. Nodes are exchanging events through dispatcher.
     """
     def __init__(self):
-        self._subscribers = {}
+        self.routing = routing.RoutingTable() 
         self.tub = UnauthenticatedTub()
         self.tub.listenOn('tcp:5333')
         self.tub.setLocation('localhost:5333')
@@ -35,22 +37,19 @@ class EventDispatcher(Referenceable):
         
     def remote_publish(self, event_name, event):
         
-        for s in self._subscribers[event_name]:
+        for s in self.routing.get(event_name):
             print "publishing %s to %s" % (event_name, s)
-            s.callRemote('event', event)
+            s.getNode().callRemote('event', event)
     
     def remote_unsubscribe(self, event_name, node):
         print "unsubscription to %s by %s" % (event_name, node)
         
-        if node in self._subscribers[event_name]:
-            self._subscribers[event_name].remove(node)
+        self.routing.remove(event_name, node)
+
             
     def remote_subscribe(self, event_name, node):
         print "subscription to %s by %s" % (event_name, node)
-        if self._subscribers.has_key(event_name):
-            self._subscribers[event_name].append(node) 
-        else:
-            self._subscribers[event_name] = [node]
+        self.routing.add(event_name, node)
   
 class Node(Referenceable):
     """
@@ -95,7 +94,7 @@ class Node(Referenceable):
     def publish(self, name, event):
         """
         publish event with name and event object (NodeEvent)
-        @param name: event name
+        @param name: event name (str node@host/event)
         @param event: object
         @type event: NodeEvent
         @return: None
