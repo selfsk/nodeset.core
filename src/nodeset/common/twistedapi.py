@@ -4,6 +4,8 @@ from twisted.python import usage
 from twisted.python.util import switchUID, uidFromString, gidFromString
 #from twisted.python.runtime import platformType
 
+from twisted.internet import reactor
+
 import sys
 
 from twisted.scripts._twistd_unix import ServerOptions, \
@@ -82,7 +84,7 @@ def runApp(config, application):
    
     runner.run()
 
-def _run(runApp, ServerOptions, application):
+def _run(runApp, application, ServerOptions=NodeSetAppOptions):
     """
     instead of run, to handle additional option
     @param runApp: runApp func
@@ -99,14 +101,13 @@ def _run(runApp, ServerOptions, application):
     else:
         runApp(config, application)
         
-def run(application):
+def run(application, options=NodeSetAppOptions):
     """
     wrapper for _run, application instance added
     @param application: Application instance
     @type application: Application
     """
-    _run(runApp, NodeSetAppOptions, application)
-   
+    _run(runApp, application, NodeSetAppOptions)
    
 __all__ = ['run', 'runApp']
 
