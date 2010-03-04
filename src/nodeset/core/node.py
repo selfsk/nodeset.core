@@ -1,7 +1,11 @@
-from foolscap.api import Referenceable, Tub, Copyable, UnauthenticatedTub, RemoteCopy
+from foolscap.api import Referenceable, Tub, Copyable, UnauthenticatedTub, RemoteCopy, DeadReferenceError
 from uuid import uuid4
 
+from twisted.internet import reactor
+
 from nodeset.core import routing
+
+import signal
 
 class NodeEvent(Copyable, RemoteCopy):
     """
@@ -39,7 +43,10 @@ class EventDispatcher(Referenceable):
         
         for s in self.routing.get(event_name):
             print "publishing %s to %s" % (event_name, s)
-            s.getNode().callRemote('event', event)
+            try:
+                s.getNode().callRemote('event', event)
+            except DeadReferenceError, e:
+                print "publishing failed %s" % str(e)
     
     def remote_unsubscribe(self, event_name, node):
         print "unsubscription to %s by %s" % (event_name, node)
@@ -74,23 +81,51 @@ class Node(Referenceable):
         self.tub.setLocation('localhost:%d' % port)
         self.name = name
         
+        # internal state of subscriptions, useful for re-establish connection to dispatcher
+        self.__subscribes = []
+        
         if not self.name:
             self.name = str(uuid4())
             
         self.tub.registerReference(self, self.name)
         
         self.dispatcher = None
+   
+        self._start()
         
+    def _handle_signal(self, signo, bt):
+        print "signal %d" % signo
+        print "bt %s" % bt
+        
+        reactor.callLater(0.1, self._restart, 2)
+        
+    def _start(self, timeout=0):     
         d = self.tub.getReference('pbu://localhost:5333/dispatcher')
-        d.addCallback(self._gotDispatcher).addErrback(self._error)
+        d.addCallback(self._gotDispatcher).addErrback(self._error, timeout)
         
     def _gotDispatcher(self, remote):
         self.dispatcher = remote
-        
-    def _error(self, failure):
+
+        # in case if we're reinitializing connection to dispatcher
+        for e in self.__subscribes:
+            self.subscribe(name, self)
+            
+    def _error(self, failure, timeout):
         print "error - %s" % str(failure)
-       
-       
+        self.dispatcher = None
+        self._restart(timeout+2)
+        
+    def _restart(self, timeout):
+        """
+        re-initialize Node, if dispatcher was restarted
+        """
+        if timeout > 4:
+            print "stop trying to reconnect after %d" % timeout
+            return
+        
+        reactor.callLater(timeout, self._start, timeout)
+        print "re-initializing connection dispatcher in %d seconds" % timeout
+     
     def publish(self, name, event):
         """
         publish event with name and event object (NodeEvent)
@@ -99,7 +134,8 @@ class Node(Referenceable):
         @type event: NodeEvent
         @return: None
         """
-        self.dispatcher.callRemote('publish', name, event)
+        if self.dispatcher:
+            self.dispatcher.callRemote('publish', name, event)
   
     def subscribe(self, name):
         """
@@ -107,8 +143,9 @@ class Node(Referenceable):
         @param name: event name
         @return: None
         """
-        self.dispatcher.callRemote('subscribe', name, self)
-    
+        if self.dispatcher:
+            self.dispatcher.callRemote('subscribe', name, self)
+            self.__subscribes.append(name)
     
     def unsubscribe(self, name):
         """
@@ -116,8 +153,9 @@ class Node(Referenceable):
         @param name: event name
         @return: None
         """
-        self.dispatcher.callRemote('unsubscribe', name, self)
-        
+        if self.dispatcher:
+            self.dispatcher.callRemote('unsubscribe', name, self)
+            self.__subscribes.remove(name)
         
     def onEvent(self, event):
         """
