@@ -165,10 +165,9 @@ class Node(Referenceable):
     def publish(self, event):
         """
         publish event with name and event object (NodeEvent)
-        @param name: event name (str node@host/event)
-        @param event: object
+        @param event: NodeEvent instance 
         @type event: NodeEvent
-        @return: None
+        @return: deferred
         """
         if self.dispatcher:
             d = self.dispatcher.callRemote('publish', event)
