@@ -1,4 +1,5 @@
-from foolscap.api import Referenceable, Tub, Copyable, UnauthenticatedTub, RemoteCopy, DeadReferenceError
+from foolscap.api import Referenceable, Tub, Copyable, UnauthenticatedTub, RemoteCopy 
+from foolscap.ipb import DeadReferenceError
 from uuid import uuid4
 
 from twisted.internet import reactor, defer
@@ -57,15 +58,23 @@ class EventDispatcher(Referenceable):
         self.tub.listenOn('tcp:5333')
         self.tub.setLocation('localhost:5333')
         self.tub.registerReference(self, 'dispatcher')
+       
+    def _err(self, fail, event, node):
+        fail.trap(DeadReferenceError)
+        print "dead reference %s, drop it" % node
+        self.routing.remove(event.name, node.getNode())
         
-    def remote_publish(self, event_name, event):
+    def remote_publish(self, event):
         
-        for s in self.routing.get(event_name):
-            print "publishing %s to %s" % (event_name, s)
-            try:
-                s.getNode().callRemote('event', event)
-            except DeadReferenceError, e:
-                print "publishing failed %s" % str(e)
+        print "--> publishing %s" % event.name
+        
+        for s in self.routing.get(event.name):
+            print "publishing %s to %s" % (event.name, s)
+            s.getNode().callRemote('event', event).addErrback(self._err, event, s)
+            #except DeadReferenceError, e:
+            #    print "dead referense %s, drop it" % s
+            #    self.routing.remove(event.name, s.getNode())
+                #print "publishing failed %s" % str(e)
     
     def remote_unsubscribe(self, event_name, node):
         print "unsubscription to %s by %s" % (event_name, node)
@@ -153,7 +162,7 @@ class Node(Referenceable):
         reactor.callLater(timeout, self.start, timeout)
         print "re-initializing connection dispatcher in %d seconds" % timeout
      
-    def publish(self, name, event):
+    def publish(self, event):
         """
         publish event with name and event object (NodeEvent)
         @param name: event name (str node@host/event)
@@ -162,7 +171,7 @@ class Node(Referenceable):
         @return: None
         """
         if self.dispatcher:
-            d = self.dispatcher.callRemote('publish', name, event)
+            d = self.dispatcher.callRemote('publish', event)
             return d
   
     def subscribe(self, name):

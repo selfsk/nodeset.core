@@ -113,7 +113,7 @@ class RoutingTable:
         """
         
         nodes = self._lookup(event_uri, node)
-        for n in node:
+        for n in nodes:
             self.entries.remove(n)
         
 class RouteEntry:
