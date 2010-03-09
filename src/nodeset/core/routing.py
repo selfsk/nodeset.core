@@ -17,8 +17,8 @@ class RoutingTable:
         """
         Parsing of event URI (i.e. node@host/event)
         @param event_uri: event URI
-        @return triplet of (host, node, event)
-        @raise Exception(Invalid Addressing)
+        @return: triplet of (host, node, event)
+        @raise: Exception(Invalid Addressing)
         """
         host = node = event = None
 
@@ -81,10 +81,10 @@ class RoutingTable:
             
     def get(self, event_uri):
         """
-        Get recepients for event_name
-        @param event_name: event name
-        @return RouteEntry
-        @raise KeyError
+        Get recepients for event_uri
+        @param event_uri: event URI
+        @return: L{RouteEntry}
+        @raise: KeyError
         """
         
         return self._lookup(event_uri)
@@ -92,9 +92,9 @@ class RoutingTable:
     def add(self, event_uri, node):
         """
         Add new recepient for event
-        @param event_name: event name
+        @param event_uri: event URI
         @param node: recepient node
-        @type node: Node
+        @type node: L{Node}
         """
         node_name, host, name = self._split_uri(event_uri)
         
@@ -103,9 +103,9 @@ class RoutingTable:
     def remove(self, event_uri, node):
         """
         Remove recepient for event
-        @param event_name: event name
+        @param event_uri: event URI
         @param node: recepient
-        @raise KeyError
+        @raise: KeyError
         """
         
         nodes = self._lookup(event_uri, node)

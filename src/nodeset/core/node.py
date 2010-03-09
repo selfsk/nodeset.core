@@ -72,7 +72,7 @@ class EventDispatcher(Referenceable):
         @param fail: twisted failure object
         @type fail: twisted.failure.Falure
         @param event: event object
-        @type event: NodeEvent
+        @type event: L{NodeEvent}
         @param node: node object
         @type node: L{Node}
         """
@@ -96,9 +96,9 @@ class EventDispatcher(Referenceable):
         """
         callRemote('publish', src, event)
         @param src: src reference
-        @type src: Node
+        @type src: L{Node}
         @param event: event object
-        @type event: NodeEvent
+        @type event: L{NodeEvent}
         """
         print "--> publishing %s" % event.name
         
@@ -200,7 +200,7 @@ class Node(Referenceable):
         """
         publish event with name and event object (NodeEvent)
         @param event: NodeEvent instance 
-        @type event: NodeEvent
+        @type event: L{NodeEvent}
         @return: deferred
         """
         if self.dispatcher:
@@ -253,7 +253,7 @@ class Node(Referenceable):
         foolscap's method, will be called by EventDispatcher on event publishing. By default it calls onEvent(event),
         you can implement it in subclass to perform various events handling
         @param event: object
-        @type event: NodeEvent
+        @type event: L{NodeEvent}
         @return: None
         """
         self.onEvent(event)
@@ -263,7 +263,7 @@ class Node(Referenceable):
         """
         foolscap's method, will be called by EventDispatcher in case of error on rcpt side. 
         @param error: error object
-        @type error: NodeEventError
+        @type error: L{NodeEventError}
         """
         self.onError(error)
 
