@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name = "nodeset",
     version = "0.99.0",
-    packages = find_packages(),
+    packages = find_packages('src'),
     package_dir = {'': 'src'},
 
     # Project uses reStructuredText, so ensure that the docutils get

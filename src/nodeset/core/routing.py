@@ -2,11 +2,7 @@
 class RoutingTable:
     """
     Routing table container
-    @ivar entries - dict-of-dict routing entries
-     event_name -> node
-                -> node
-                -> host -> node
-                        -> node
+    @ivar entries: list of RouteEntry instances
     """
     
     entries = []

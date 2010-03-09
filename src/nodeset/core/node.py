@@ -10,11 +10,18 @@ import signal
 
 class NodeEventBuilder:
     """
-    We can't pass any arguments to NodeEvent, due to foolscap limitations (i.e L{RemoteCopy}). This factory
+    We can't pass any arguments to NodeEvent, due to foolscap limitations 
+    (i.e U{RemoteCopy<http://foolscap.lothar.com/docs/api/foolscap.copyable.RemoteCopy-class.html>}). This factory
     should be used for NodeEvent creation and configuration (Builder pattern)
     """
     
     def createEvent(self, name, payload):
+        """
+        create empty NodeEvent object, and then set name and payload values
+        @param name: event name
+        @param payload: payload
+        @return NodeEvent
+        """
         event = NodeEvent()
         event.name = name
         event.payload = payload
@@ -59,18 +66,45 @@ class EventDispatcher(Referenceable):
         self.tub.setLocation('localhost:5333')
         self.tub.registerReference(self, 'dispatcher')
        
-    def _err(self, fail, event, node):
+    def _dead_reference(self, fail, event, node):
+        """
+        Errback for DeadReference exception handling
+        @param fail: twisted failure object
+        @type fail: twisted.failure.Falure
+        @param event: event object
+        @type event: NodeEvent
+        @param node: node object
+        @type node: L{Node}
+        """
         fail.trap(DeadReferenceError)
         print "dead reference %s, drop it" % node
         self.routing.remove(event.name, node.getNode())
         
-    def remote_publish(self, event):
+    def _failure(self, fail, node):
+        """
+        Handling of any other exception, in case of failure on rcpt node.
+        Do callRemote('error') on src node, to deliver failure
+        @param fail: failure
+        @type fail: twisted.failure.Failure
+        @param node: src node
+        @type node: Node
+        """
+        print "Unresolved failure %s" % str(fail)
+        node.callRemote('error', NodeEventBuilder().createEvent('error', fail))
         
+    def remote_publish(self, src, event):
+        """
+        callRemote('publish', src, event)
+        @param src: src reference
+        @type src: Node
+        @param event: event object
+        @type event: NodeEvent
+        """
         print "--> publishing %s" % event.name
         
         for s in self.routing.get(event.name):
             print "publishing %s to %s" % (event.name, s)
-            s.getNode().callRemote('event', event).addErrback(self._err, event, s)
+            s.getNode().callRemote('event', event).addErrback(self._dead_reference, event, s).addErrback(self._failure, src)
             #except DeadReferenceError, e:
             #    print "dead referense %s, drop it" % s
             #    self.routing.remove(event.name, s.getNode())
@@ -170,7 +204,7 @@ class Node(Referenceable):
         @return: deferred
         """
         if self.dispatcher:
-            d = self.dispatcher.callRemote('publish', event)
+            d = self.dispatcher.callRemote('publish', self, event)
             return d
   
     def subscribe(self, name):
@@ -205,7 +239,15 @@ class Node(Referenceable):
         """
         print "event %s" % event
     
-   
+ 
+    def onError(self, error):
+        """
+        default callback for errors
+        @param error: NodeEventError
+        @type error: NodeEventError
+        """
+        pass
+    
     def remote_event(self, event):
         """
         foolscap's method, will be called by EventDispatcher on event publishing. By default it calls onEvent(event),
@@ -216,6 +258,14 @@ class Node(Referenceable):
         """
         self.onEvent(event)
  
+    
+    def remote_error(self, error):
+        """
+        foolscap's method, will be called by EventDispatcher in case of error on rcpt side. 
+        @param error: error object
+        @type error: NodeEventError
+        """
+        self.onError(error)
 
 def _create_node(stub, kNode, *args, **kwargs):
     return kNode(*args, **kwargs)

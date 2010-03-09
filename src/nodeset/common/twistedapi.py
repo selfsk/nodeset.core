@@ -14,7 +14,8 @@ from twisted.scripts._twistd_unix import ServerOptions, \
 
 class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
     """
-    Copy of L{ServerOptions}, but without all twistd options.
+    Copy of U{ServerOptions<http://twistedmatrix.com/documents/9.0.0/api/twisted.application.app.ServerOptions.html>}, 
+    but without all twistd options.
     """
     
     optFlags = [['nodaemon','n',  "don't daemonize, don't use default umask of 0077"],
@@ -63,7 +64,8 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
         
 class NodeSetApplicationRunner(_SomeApplicationRunner):
     """
-    Adoption of L{_SomeApplicationRunner} for NodeSet, createOrGetApplication redefined only
+    Adoption of U{UnixApplicationRunner<http://twistedmatrix.com/documents/9.0.0/api/twisted.scripts._twistd_unix.UnixApplicationRunner.html>} 
+    for NodeSet, createOrGetApplication redefined only
     """
     def createOrGetApplication(self):
         """
