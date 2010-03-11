@@ -108,7 +108,14 @@ class RoutingTable:
         @raise: KeyError
         """
         
-        nodes = self._lookup(event_uri, node)
+        if event_uri:
+            nodes = self._lookup(event_uri, node)
+        else:
+            if isinstance(node, RouteEntry):
+                nodes = [node]
+            else:
+                nodes = [x for x in self.entries if x.getNode() == node]
+                
         for n in nodes:
             self.entries.remove(n)
         

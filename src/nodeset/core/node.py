@@ -3,9 +3,10 @@ from foolscap.ipb import DeadReferenceError
 from uuid import uuid4
 
 from twisted.internet import reactor, defer
+from twisted.python import log
 
-from nodeset.core import routing
-
+from nodeset.core import routing, heartbeat
+import logging
 import signal
 
 class NodeEventBuilder:
@@ -54,6 +55,9 @@ class NodeEvent(Copyable, RemoteCopy):
         self.name = state['name']
         self.payload = state['payload']
         
+    def __str__(self):
+        return str("%s<%s>" % (self.name, self.payload))
+    
 class EventDispatcher(Referenceable):
     """ 
     EventDispatcher instance is running on each host as separate process. Remote Nodes can subscribe for events
@@ -65,20 +69,22 @@ class EventDispatcher(Referenceable):
         self.tub.listenOn('tcp:5333')
         self.tub.setLocation('localhost:5333')
         self.tub.registerReference(self, 'dispatcher')
-       
-    def _dead_reference(self, fail, event, node):
+
+        self.heartbeat = heartbeat.NodeHeartBeat(self)
+        self.heartbeat.schedule(10)
+        
+    def _dead_reference(self, fail, node):
         """
         Errback for DeadReference exception handling
         @param fail: twisted failure object
         @type fail: twisted.failure.Falure
-        @param event: event object
-        @type event: L{NodeEvent}
         @param node: node object
         @type node: L{Node}
         """
         fail.trap(DeadReferenceError)
-        print "dead reference %s, drop it" % node
-        self.routing.remove(event.name, node.getNode())
+        log.msg("dead reference %s, drop it" % node, logLevel=logging.WARNING)
+        self.routing.remove(None, node)
+        self.heartbeat.remove(node)
         
     def _failure(self, fail, node):
         """
@@ -89,7 +95,7 @@ class EventDispatcher(Referenceable):
         @param node: src node
         @type node: Node
         """
-        print "Unresolved failure %s" % str(fail)
+        log.msg("Unresolved failure %s" % str(fail), logLevel=logging.ERROR)
         node.callRemote('error', NodeEventBuilder().createEvent('error', fail))
         
     def remote_publish(self, src, event):
@@ -100,31 +106,36 @@ class EventDispatcher(Referenceable):
         @param event: event object
         @type event: L{NodeEvent}
         """
-        print "--> publishing %s" % event.name
+        log.msg("publishing %s" % (event), logLevel=logging.INFO)
+        #print "--> publishing %s" % event.name
         
         for s in self.routing.get(event.name):
             print "publishing %s to %s" % (event.name, s)
-            s.getNode().callRemote('event', event).addErrback(self._dead_reference, event, s).addErrback(self._failure, src)
-            #except DeadReferenceError, e:
-            #    print "dead referense %s, drop it" % s
-            #    self.routing.remove(event.name, s.getNode())
-                #print "publishing failed %s" % str(e)
+            s.getNode().callRemote('event', event).addErrback(self._dead_reference, s).addErrback(self._failure, src)
+
     
     def remote_unsubscribe(self, event_name, node):
-        print "unsubscription to %s by %s" % (event_name, node)
+        log.msg("unsubscribe for %s by %s" % (event_name, node), logLevel=logging.INFO)
+        #print "unsubscription to %s by %s" % (event_name, node)
         
         self.routing.remove(event_name, node)
-
+        if self.heartbeat.has(node):
+            self.heartbeat.remove(node)
             
     def remote_subscribe(self, event_name, node):
-        print "subscription to %s by %s" % (event_name, node)
+        log.msg("subscription to %s by %s" % (event_name, node), logLevel=logging.INFO)
+        
         self.routing.add(event_name, node)
+        if not self.heartbeat.has(node):
+            m = self.heartbeat.add(node).onOk(lambda _: None).onFail(self._dead_reference, node)
+        
   
 class Node(Referenceable):
     """
     Main atom of NodeSet framework, communication is build on top of simple interface:
      - publish
      - subscribe
+     - unsubscribe
     """
    
     def __init__(self, port, name=None, dispatcher_url=None):
@@ -171,7 +182,8 @@ class Node(Referenceable):
         return self.tub
     
     def _gotDispatcher(self, remote):
-        print "dispatcher %s" % remote
+        log.msg("got dispatcher %s" % remote)
+        
         self.dispatcher = remote
 
         # in case if we're reinitializing connection to dispatcher
@@ -181,7 +193,7 @@ class Node(Referenceable):
         return remote
     
     def _error(self, failure, timeout):
-        print "error - %s" % str(failure)
+        log.msg("error - %s" % str(failure), logLevel=logging.ERROR)
         self.dispatcher = None
         self._restart(timeout+2)
         
@@ -190,11 +202,11 @@ class Node(Referenceable):
         re-initialize Node, if dispatcher was restarted
         """
         if timeout > 4:
-            print "stop trying to reconnect after %d" % timeout
+            log.msg("stop trying to reconnect after %d" % timeout, logLevel=logging.ERROR)
             return
         
         reactor.callLater(timeout, self.start, timeout)
-        print "re-initializing connection dispatcher in %d seconds" % timeout
+        log.msg("re-initializing connection dispatcher in %d seconds" % timeout, logLevel=logging.ERROR)
      
     def publish(self, event):
         """
@@ -213,7 +225,6 @@ class Node(Referenceable):
         @param name: event name
         @return: None
         """
-        print "subscribe %s" % name
         if self.dispatcher:
             d = self.dispatcher.callRemote('subscribe', name, self)
             self.__subscribes.append(name)
@@ -237,7 +248,7 @@ class Node(Referenceable):
         @param event: object
         @type event: NodeEvent
         """
-        print "event %s" % event
+        pass
     
  
     def onError(self, error):
@@ -267,6 +278,14 @@ class Node(Referenceable):
         """
         self.onError(error)
 
+    def remote_heartbeat(self):
+        """
+        dispatcher sends periodical heartbeat to Node, in reply return True for now 
+        (DeadReferences are handled by dispacher automatically)
+        """
+        log.msg("someone is heartbeating me")
+        return True
+    
 def _create_node(stub, kNode, *args, **kwargs):
     return kNode(*args, **kwargs)
 
