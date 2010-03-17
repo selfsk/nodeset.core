@@ -286,6 +286,18 @@ class Node(Referenceable):
         log.msg("someone is heartbeating me")
         return True
     
+
+class StreamNode(Node):
+    """
+    Special case of Node, which supports streaming of any data
+    """
+    
+    def remote_stream(self, stream):
+        pass
+    
+    def stream(self):
+        pass
+    
 def _create_node(stub, kNode, *args, **kwargs):
     return kNode(*args, **kwargs)
 
