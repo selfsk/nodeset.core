@@ -86,18 +86,6 @@ class EventDispatcher(Referenceable):
         self.routing.remove(None, node)
         self.heartbeat.remove(node)
         
-    def _failure(self, fail, node):
-        """
-        Handling of any other exception, in case of failure on rcpt node.
-        Do callRemote('error') on src node, to deliver failure
-        @param fail: failure
-        @type fail: twisted.failure.Failure
-        @param node: src node
-        @type node: Node
-        """
-        log.msg("Unresolved failure %s" % str(fail), logLevel=logging.ERROR)
-        node.callRemote('error', NodeEventBuilder().createEvent('error', fail))
-        
     def remote_publish(self, src, event):
         """
         callRemote('publish', src, event)
@@ -111,11 +99,10 @@ class EventDispatcher(Referenceable):
         
         for s in self.routing.get(event.name):
             print "publishing %s to %s" % (event.name, s)
-            s.getNode().callRemote('event', event).addErrback(self._dead_reference, s).addErrback(self._failure, src)
+            return s.getNode().callRemote('event', event).addErrback(self._dead_reference, s)
 
     def remote_unsubscribe(self, event_name, node):
         log.msg("unsubscribe for %s by %s" % (event_name, node), logLevel=logging.INFO)
-        #print "unsubscription to %s by %s" % (event_name, node)
         
         self.routing.remove(event_name, node)
         if self.heartbeat.has(node):
@@ -126,6 +113,8 @@ class EventDispatcher(Referenceable):
         
         self.routing.add(event_name, node)
         if not self.heartbeat.has(node):
+            #FIXME: workaround for missing monitor, foolscap does not pass ivars
+            node.monitor = None
             m = self.heartbeat.add(node).onOk(lambda _: None).onFail(self._dead_reference, node)
             
 
@@ -139,6 +128,12 @@ class Node(Referenceable):
      - unsubscribe
     """
    
+    """
+    @ivar monitor: HeartBeat monitor
+    @type monior: L{NodeMonitor}
+    """
+    monitor = None
+    
     def __init__(self, port, name=None, dispatcher_url=None):
         """ 
         @param port: listen port for Tub
@@ -167,8 +162,6 @@ class Node(Referenceable):
         self.dispatcher_url = dispatcher_url or 'pbu://localhost:5333/dispatcher'
         self.dispatcher = None
    
-        self.heartbeat = None
-        
     def _handle_signal(self, signo, bt):
         print "signal %d" % signo
         print "bt %s" % bt
@@ -270,7 +263,7 @@ class Node(Referenceable):
         @type event: L{NodeEvent}
         @return: None
         """
-        self.onEvent(event)
+        return self.onEvent(event)
  
     
     def remote_error(self, error):
@@ -279,7 +272,7 @@ class Node(Referenceable):
         @param error: error object
         @type error: L{NodeEventError}
         """
-        self.onError(error)
+        return self.onError(error)
 
     def remote_heartbeat(self):
         """
