@@ -12,6 +12,7 @@ from nodeset.agent.service import AgentService
 
 from nodeset.core import node
 
+
 class AgentInstance(object):
     
     def __init__(self, config):
@@ -36,9 +37,6 @@ def run_agent():
 def run_service():
     tub = Tub()
     s = AgentService('simple_service', tub)
-    
-
-    
     application = ts.Application('nodeset-service')
     s.tub.setServiceParent(application)
     
@@ -56,6 +54,7 @@ def run_node():
     application = ts.Application('nodeset-node')
     n.tub.setServiceParent(application)
     
+
     n.start()
     reactor.callLater(1, n.subscribe, 'simple_event')
     return run(application)
@@ -63,9 +62,10 @@ def run_node():
 def run_node1():
     n = node.Node(5335)
     application = ts.Application('nodeset-node')
-    n.tub.setServiceParent(application)
-    
+
+    n.tub.setServiceParent(application)   
+    ev = node.NodeEventBuilder().createEvent('simple_event', 'hello world')
     n.start()
-    
-    reactor.callLater(3, n.publish, node.NodeEventBuilder().createEvent('simple_event', 'hello world'))
+    reactor.callLater(3, n.publish, ev)
+
     return run(application)
