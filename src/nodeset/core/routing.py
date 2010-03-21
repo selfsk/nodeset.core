@@ -131,7 +131,7 @@ class RouteEntry:
     host = None
     
     def __init__(self, host, event_name, node):
-        self.event_name = event_name
+        self.name = event_name
         self.node = node
         self.host = host
         
@@ -142,7 +142,7 @@ class RouteEntry:
         return self.host
     
     def getEventName(self):
-        return self.event_name
+        return self.name
     
 class RemoteRouteEntry(RouteEntry):
     """

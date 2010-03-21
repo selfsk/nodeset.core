@@ -8,7 +8,7 @@ setup(
 
     # Project uses reStructuredText, so ensure that the docutils get
     # installed or upgraded on the target machine
-    install_requires = ['twisted>=9.0.0', 'foolscap>=0.5.0', 'pyyaml', 'pyopenssl'],
+    install_requires = ['twisted>=9.0.0', 'foolscap>=0.5.0', 'pyopenssl'],
     
     package_data = {
         # If any package contains *.txt and .yml files

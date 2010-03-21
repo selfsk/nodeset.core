@@ -56,6 +56,7 @@ def run_node():
     application = ts.Application('nodeset-node')
     n.tub.setServiceParent(application)
     
+    n.start()
     reactor.callLater(1, n.subscribe, 'simple_event')
     return run(application)
 
@@ -64,5 +65,7 @@ def run_node1():
     application = ts.Application('nodeset-node')
     n.tub.setServiceParent(application)
     
-    reactor.callLater(3, n.publish, 'simple_event', 'hello world')
+    n.start()
+    
+    reactor.callLater(3, n.publish, node.NodeEventBuilder().createEvent('simple_event', 'hello world'))
     return run(application)

@@ -81,7 +81,9 @@ class NodeHeartBeat:
         @type node: L{Node}
         @return: L{NodeMonitor}
         """
-        monitor = NodeMonitor(node)
+
+        # if node has its own specific monitor callbacks, use them before dispatchers one
+        monitor = node.monitor or NodeMonitor(node)
         self.monitors.add(monitor)
         
         return monitor
@@ -93,7 +95,8 @@ class NodeHeartBeat:
         @type node: L{Node}
         @return: L{NodeMonitor}
         """
-        monitor = self._lookup(node) 
+        
+        monitor = node.monitor or self._lookup(node) 
         self.monitors.remove(monitor)
         
         return monitor

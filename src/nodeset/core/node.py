@@ -113,7 +113,6 @@ class EventDispatcher(Referenceable):
             print "publishing %s to %s" % (event.name, s)
             s.getNode().callRemote('event', event).addErrback(self._dead_reference, s).addErrback(self._failure, src)
 
-    
     def remote_unsubscribe(self, event_name, node):
         log.msg("unsubscribe for %s by %s" % (event_name, node), logLevel=logging.INFO)
         #print "unsubscription to %s by %s" % (event_name, node)
@@ -128,7 +127,9 @@ class EventDispatcher(Referenceable):
         self.routing.add(event_name, node)
         if not self.heartbeat.has(node):
             m = self.heartbeat.add(node).onOk(lambda _: None).onFail(self._dead_reference, node)
-        
+            
+
+                
   
 class Node(Referenceable):
     """
@@ -166,6 +167,8 @@ class Node(Referenceable):
         self.dispatcher_url = dispatcher_url or 'pbu://localhost:5333/dispatcher'
         self.dispatcher = None
    
+        self.heartbeat = None
+        
     def _handle_signal(self, signo, bt):
         print "signal %d" % signo
         print "bt %s" % bt
