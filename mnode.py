@@ -13,6 +13,7 @@ class SimpleNode(node.Node):
 class SimpleBlockNode(node.Node):
     def onEvent(self, event):
         print "Blocking event %s" % event
+        return "return event_%s" % event.name
         
         time.sleep(5)
         print "Go ahead!"

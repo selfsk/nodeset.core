@@ -239,12 +239,18 @@ class Node(Referenceable):
 class NodeCollection(Node):
     """
     Node which contain group of node, to avoid running each node as separate process
-    @ivar nodes: list of L{Node}s
+    @ivar events: dict for event_name -> list of L{Node}s
     """
     
     events = {}
     
     def addEvent(self, event_name, node):
+        """
+        Add node to events under event_name
+        @param event_name: event name
+        @param node: node for event delivering
+        @type node: L{Node}
+        """
         if self.events.has_key(event_name):
             self.events[event_name].append(node)
         else:
@@ -253,6 +259,12 @@ class NodeCollection(Node):
         return len(self.events[event_name])
 
     def removeEvent(self, event_name, node):
+        """
+        Remove node from events under event_name
+        @param event_name: event name
+        @param node: node for event delivering
+        @type node: L{Node}
+        """
         if self.events.has_key(event_name):
             self.events[event_name].remove(node)
     
@@ -260,21 +272,28 @@ class NodeCollection(Node):
         return len(self.events[event_name])
     
     def addNode(self, node):
+        """
+        Adds parent to node, so that node can delegate subscrube/unsubscribe through L{NodeCollection}
+        """
         node.parent = self
         
     def removeNode(self, node):
         node.parent = None
 
     def eventloop(self, node, event):
-        return node.onEvent(event)
+        """
+        do onEvent
+        """
+        yield node.onEvent(event)
         
     def remote_event(self, event):
+        """
+        Do scheduling of event delivering through reactor
+        """
         for n in self.events[event.name]:
             reactor.callLater(0, self.eventloop, n, event)
+            #yield n.onEvent(event)
         
-        #for n in self.events[event.name]:
-        #    n.onEvent(event)
-    
     def subscribe(self, name, node):
         if self.dispatcher:
             # if we already subscribed to this event, don't send callRemote again

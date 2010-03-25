@@ -4,14 +4,20 @@ from nodeset.common.twistedapi import run
 from twisted.application import service
 from twisted.internet import reactor
 
+def _print(rval):
+    print rval
+    
+def _publish(n, name, payload):
+    n.publish(node.NodeEventBuilder().createEvent(name, payload)).addCallback(_print)
+    
 def publish_main():
     n = node.Node(5688)
     application = service.Application('mnode-publish')
 
-    reactor.callLater(2, n.publish, node.NodeEventBuilder().createEvent('event_1', 'payload_1'))
-    reactor.callLater(2, n.publish, node.NodeEventBuilder().createEvent('event_block', 'blocking'))
-    reactor.callLater(3, n.publish, node.NodeEventBuilder().createEvent('event_2', 'payload_2'))
-    reactor.callLater(4, n.publish, node.NodeEventBuilder().createEvent('event_3', 'payload_3'))
+    reactor.callLater(2, _publish, n, 'event_1', 'payload_1')
+    reactor.callLater(2, _publish, n, 'event_block', 'blocking')
+    #reactor.callLater(3, n.publish, node.NodeEventBuilder().createEvent('event_2', 'payload_2'))
+    reactor.callLater(4, _publish, n, 'event_3', 'payload_3')
     
     n.start()
     n.tub.setServiceParent(application)
