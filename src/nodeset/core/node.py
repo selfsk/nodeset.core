@@ -157,6 +157,9 @@ class Node(Referenceable):
         @type event: L{NodeEvent}
         @return: deferred
         """
+        if self.parent:
+            return self.parent.publish(event)
+        
         if self.dispatcher:
             d = self.dispatcher.callRemote('publish', self, event)
             return d
@@ -280,18 +283,50 @@ class NodeCollection(Node):
     def removeNode(self, node):
         node.parent = None
 
-    def eventloop(self, node, event):
+    def eventloop(self, node, event, defer):
         """
         do onEvent
         """
-        yield node.onEvent(event)
+        try:
+            defer.callback(node.onEvent(event))
+        except Exception, e:
+            defer.errback(e)
         
     def remote_event(self, event):
         """
         Do scheduling of event delivering through reactor
         """
-        for n in self.events[event.name]:
-            reactor.callLater(0, self.eventloop, n, event)
+        nodes = self.events[event.name]
+        defers = []
+        
+        for n in nodes:
+            d = defer.Deferred()
+            print "nodes %s, defers %s" % (nodes, defers)
+            reactor.callLater(0, self.eventloop, n, event, d)
+
+            # if more nodes to come, do DeferredList instead
+            if len(nodes):
+                defers.append(d)
+                
+
+        del nodes
+        if len(defers) > 1:
+            return defer.DeferredList(defers)
+        else:
+            del defers
+            return d
+    
+    def publish(self, event):
+        if self.dispatcher:
+            if event.name in self.events:
+                return self.remote_event(event)
+            else:
+                return self.dispatcher.callRemote('publish', self, event)
+            
+        #return self.eventloop(n, event).addCallback(self.eventloop)
+    
+        #for n in self.events[event.name]:
+        #    reactor.callLater(0, self.eventloop, n, event)
             #yield n.onEvent(event)
         
     def subscribe(self, name, node):
