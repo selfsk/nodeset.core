@@ -13,7 +13,7 @@ def _print(rval):
     print rval
     
 def _publish(n, name, payload):
-    n.publish(node.NodeEventBuilder().createEvent(name, payload)).addCallback(_print)
+    n.publish(n.builder.createEvent(name, payload)).addCallback(_print)
     
 def publish_main():
     n = SimpleNode(5688)

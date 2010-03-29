@@ -3,11 +3,13 @@ from foolscap.ipb import DeadReferenceError
 from uuid import uuid4
 
 from twisted.internet import reactor, defer
-from twisted.python import log
+from twisted.python import log, components
 
-from nodeset.core import routing, heartbeat
+from nodeset.core import routing, heartbeat, interfaces
 import logging
 import signal
+
+from zope.interface import implements 
 
 class NodeEventBuilder:
     """
@@ -61,6 +63,8 @@ class NodeEvent(Copyable, RemoteCopy):
 
   
 class Node(Referenceable):
+    implements(interfaces.INode)
+    
     """
     Main atom of NodeSet framework, communication is build on top of simple interface:
      - publish
@@ -73,7 +77,7 @@ class Node(Referenceable):
     @type monior: L{NodeMonitor}
     """
     monitor = None
-    parent = None
+    builder = NodeEventBuilder()
     
     def __init__(self, port=None, name=None, dispatcher_url=None):
         """ 
@@ -157,9 +161,7 @@ class Node(Referenceable):
         @type event: L{NodeEvent}
         @return: deferred
         """
-        if self.parent:
-            return self.parent.publish(event)
-        
+
         if self.dispatcher:
             d = self.dispatcher.callRemote('publish', self, event)
             return d
@@ -170,9 +172,6 @@ class Node(Referenceable):
         @param name: event name
         @return: None
         """
-        
-        if self.parent:
-            return self.parent.subscribe(name, self)
         
         if self.dispatcher:
             d = self.dispatcher.callRemote('subscribe', name, self)
@@ -185,8 +184,6 @@ class Node(Referenceable):
         @param name: event name
         @return: None
         """
-        if self.parent:
-            return self.parent.unsubscribe(name, self)
             
         if self.dispatcher:
             d = self.dispatcher.callRemote('unsubscribe', name, self)
@@ -238,8 +235,22 @@ class Node(Referenceable):
         log.msg("someone is heartbeating me")
         return True
     
-
+class StreamNode(Node):
+    implements(interfaces.IStreamNode)
+    """
+    Special case of Node, which supports streaming of any data
+    """
+    
+    def remote_stream(self, stream):
+        pass
+    
+    def stream(self):
+        pass
+    
 class NodeCollection(Node):
+    
+    implements(interfaces.INodeCollection)
+    
     """
     Node which contain group of node, to avoid running each node as separate process
     @ivar events: dict for event_name -> list of L{Node}s
@@ -274,15 +285,16 @@ class NodeCollection(Node):
         # return size of subscriptions for event, if 0 - completely unsubscribe from dispatcher
         return len(self.events[event_name])
     
-    def addNode(self, node):
+    def adapt(self, node):
         """
-        Adds parent to node, so that node can delegate subscrube/unsubscribe through L{NodeCollection}
+        Adapts Node to NodeCollection pub/sub interface
         """
-        node.parent = self
-        
-    def removeNode(self, node):
-        node.parent = None
+        adapted = interfaces.INodeCollection(node)
+        adapted.collection = self
 
+        print "node %s, adapted %s" % (node, adapted)
+        return adapted
+    
     def eventloop(self, node, event, defer):
         """
         do onEvent
@@ -301,7 +313,6 @@ class NodeCollection(Node):
         
         for n in nodes:
             d = defer.Deferred()
-            print "nodes %s, defers %s" % (nodes, defers)
             reactor.callLater(0, self.eventloop, n, event, d)
 
             # if more nodes to come, do DeferredList instead
@@ -313,44 +324,44 @@ class NodeCollection(Node):
         if len(defers) > 1:
             return defer.DeferredList(defers)
         else:
-            del defers
+            d = defers.pop()
             return d
+        
     
+class CollectionAdapter:
+    """
+    INode -> INodeCollection adaptor
+    """
+    def __init__(self, original):
+        self.original = original
+        self.original.publish = self.publish
+        self.original.subscribe = self.subscribe
+        self.original.unsubscribe = self.unsubscribe
+        
     def publish(self, event):
-        if self.dispatcher:
-            if event.name in self.events:
-                return self.remote_event(event)
+        if self.collection.dispatcher:
+            # if is a message between nodes in collection - do direct message handling
+            if event.name in self.collection.events:
+                return self.collection.remote_event(event)
             else:
-                return self.dispatcher.callRemote('publish', self, event)
-            
-        #return self.eventloop(n, event).addCallback(self.eventloop)
-    
-        #for n in self.events[event.name]:
-        #    reactor.callLater(0, self.eventloop, n, event)
-            #yield n.onEvent(event)
+                return self.collection.dispatcher.callRemote('publish', self.collection, event)
         
-    def subscribe(self, name, node):
-        if self.dispatcher:
+    def subscribe(self, name):
+        if self.collection.dispatcher:
             # if we already subscribed to this event, don't send callRemote again
-            if self.addEvent(name, node) == 1:
-                self.dispatcher.callRemote('subscribe', name, self)
+            if self.collection.addEvent(name, self.original) == 1:
+                self.collection.dispatcher.callRemote('subscribe', name, self.collection)
         
-    def unsubscribe(self, name, node):
-        if self.dispatcher:
+    def unsubscribe(self, name):
+        if self.collection.dispatcher:
             # if there are no nodes awaiting this event, unsubscribe multi node itself
-            if not self.removeEvent(name, node) == 0:
-                self.dispatcher.callRemote('unsubscribe', name, self)
-            
-class StreamNode(Node):
-    """
-    Special case of Node, which supports streaming of any data
-    """
-    
-    def remote_stream(self, stream):
-        pass
-    
-    def stream(self):
-        pass
+            if not self.collection.removeEvent(name, self.original) == 0:
+                self.collection.dispatcher.callRemote('unsubscribe', name, self.collection)
+
+# adapt Node to INodeCollection interface with CollectionAdapter factory
+components.registerAdapter(CollectionAdapter, Node, interfaces.INodeCollection)
+          
+
     
 def _create_node(stub, kNode, *args, **kwargs):
     return kNode(*args, **kwargs)

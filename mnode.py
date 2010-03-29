@@ -18,10 +18,11 @@ class SimpleNode1(node.Node):
         print "In node return %s" % data
         
     def onEvent(self, event):
-        print "#1 got event %s" % (event)
+        print "%s, #1 got event %s" % (self, event)
         #raise Exception("#1 exception")
-        self.publish(node.NodeEventBuilder().createEvent('event_2', 'payload_inmulti')).addCallback(self._print)
-        self.publish(node.NodeEventBuilder().createEvent('remote_event', 'payload')).addCallback(self._print)
+        
+        self.publish(self.builder.createEvent('event_2', 'payload_inmulti')).addCallback(self._print)
+        self.publish(self.builder.createEvent('remote_event', 'payload')).addCallback(self._print)
         
         return "#1 return"
     
@@ -38,18 +39,15 @@ class SimpleBlockNode(node.Node):
 def listen_main():
     multi = node.NodeCollection(5788)
     
-    n1 = SimpleNode()
-    n2 = SimpleNode()
-    n3 = SimpleNode()
-    ns = SimpleNode1()
-    nb = SimpleBlockNode()
+    nn = SimpleNode()
+    n1 = multi.add(nn)
     
-    #print n1.subscribe
-    multi.addNode(n1)
-    multi.addNode(n2)
-    multi.addNode(n3)
-    multi.addNode(nb)
-    multi.addNode(ns)
+    #n1.subscribe('event_1')
+    
+    n2 = multi.add(SimpleNode())
+    n3 = multi.add(SimpleNode())
+    ns = multi.add(SimpleNode1())
+    nb = multi.add(SimpleBlockNode())
     
     #print n1.subscribe
     reactor.callLater(2, n1.subscribe, 'event_1')
