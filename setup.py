@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "nodeset",
-    version = "0.99.2",
+    version = "0.99.3",
     packages = find_packages('src'),
     package_dir = {'': 'src'},
 
@@ -17,11 +17,9 @@ setup(
 
     entry_points = {
                     'console_scripts': [
-                                        'nodeset-agent = nodeset.agent:run_agent', 
-                                        'nodeset-service = nodeset.agent:run_service',
-                                        'nodeset-dispatcher = nodeset.agent:run_dispatcher',
-                                        'nodeset-node-subscribe = nodeset.agent:run_node',
-                                        'nodeset-node-publish = nodeset.agent:run_node1']},
+                                        'nodeset-dispatcher = nodeset.core:run_dispatcher',
+                                        'nodeset-node-subscribe = nodeset.core:run_node_sub',
+                                        'nodeset-node-publish = nodeset.core:run_node_pub']},
     
     # metadata for upload to PyPI
     description = "NodeSet framework",

@@ -8,6 +8,7 @@ class INode(interface.Interface):
     dispatcher = interface.Attribute("Dispatcher remote ref")
     monitor = interface.Attribute("heartbeat monitor")
     builder = interface.Attribute("NodeEventBuilder instance")
+    tub = interface.Attribute("foolscap's Tub")
     
     __subscribers = interface.Attribute("Node's subscriptions")
     

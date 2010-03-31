@@ -44,10 +44,10 @@ def listen_main():
     
     #n1.subscribe('event_1')
     
-    n2 = multi.add(SimpleNode())
-    n3 = multi.add(SimpleNode())
-    ns = multi.add(SimpleNode1())
-    nb = multi.add(SimpleBlockNode())
+    n2 = multi.adapt(SimpleNode())
+    n3 = multi.adapt(SimpleNode())
+    ns = multi.adapt(SimpleNode1())
+    nb = multi.adapt(SimpleBlockNode())
     
     #print n1.subscribe
     reactor.callLater(2, n1.subscribe, 'event_1')
