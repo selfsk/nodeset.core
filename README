@@ -1,0 +1,26 @@
+NodeSet right now is on rapid development. Code will be changed and APIs too.
+
+* NodeSet Framework
+
+NodeSet is based on Foolscap[1] RPC and twisted[2]. This framework provides a way to build distributed services
+on top of publish/subscribe interface. Each Node is a separate unix process, and all events delivering are performed
+by dispatcher, the special unix process (also based on foolscap RPC).
+
+* NodeSet components:
+1. EventDispatcher - runs on its own, just listen for incoming foolscap RPC calls, and trace which nodes are available,
+    and its health.
+2. Node - Each Node can act as publisher, as well as subscribers. 
+ 2.1 StreamNode - special node for streaming. Streaming performed without dispatcher, to avoid performance penalty.
+
+Well, it all about publish/subscribe idea.
+
+* Goals
+ - Distributed (each host has only one dispatcher, but many nodes. Events can be delivered between hosts)
+ - Stateless (any node doesn't rely to dispatcher, if dispatcher will die, it does not affect nodes, as well as
+     death of any nodes, does not affect other nodes and dispatcher)
+ - Async (as well NodeSet is based on twisted, it's all about async programming :)
+ 
+Links:
+1. http://foolscap.lothar.com/trac
+2. http://twistedmatrix.com
+
