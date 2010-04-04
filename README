@@ -20,6 +20,31 @@ Well, it all about publish/subscribe idea.
      death of any nodes, does not affect other nodes and dispatcher)
  - Async (as well NodeSet is based on twisted, it's all about async programming :)
  
+* Install (easy_install based)
+
+python setup.py install (or develop for development)
+
+* Examples
+
+There are few examples of NodeSet framework usage:
+ * mnode.py - example of NodeCollection, as well as Node usage. Subscription example
+ * mnode_publish.py - example of publishing
+ * stream-node.py - example of StreamNode usage
+
+To run any of example, first you must run dispatcher:
+ - nodeset-dispatcher [options]
+
+ * Node usage example
+  - python mnode.py [options]
+  - python mnode_publish.py [options]
+ 
+ * StreamNode usage example
+  - python stream-node.py [options]
+
+
+Options for call is similar to twistd tool in twisted framework, base code was taken from twisted, just use --help to
+find out available options.
+
 Links:
 1. http://foolscap.lothar.com/trac
 2. http://twistedmatrix.com
