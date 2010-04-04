@@ -5,7 +5,7 @@ from uuid import uuid4
 from twisted.internet import reactor, defer
 from twisted.python import log, components
 
-from nodeset.core import routing, heartbeat, interfaces
+from nodeset.core import routing, heartbeat, interfaces, stream
 import logging
 import signal
 
@@ -239,12 +239,19 @@ class StreamNode(Node):
     implements(interfaces.IStreamNode)
     """
     Special case of Node, which supports streaming of any data
+    @ivar formatter: Stream foramtter class
+    @type formatter: L{stream.Formatter}
     """
     
-    def remote_stream(self, stream):
+    formatter = stream.Formatter
+    
+    def onStream(self, stream):
         pass
     
-    def stream(self):
+    def remote_stream(self, stream):
+        return self.onStream(stream)
+    
+    def stream(self, stream_name):
         pass
     
 class NodeCollection(Node):

@@ -37,7 +37,15 @@ class EventDispatcher(Referenceable):
         node.monitor = None
         
         self.heartbeat.remove(node)
-        
+       
+    def remote_stream(self, stream_name):
+        """
+        @param stream_name: event_URI
+        """
+    
+        log.msg("Getting list of route entries for stream(%s) delivering" % stream_name)
+        return [x.getNode() for x in self.routing.get(stream_name)]
+      
     def remote_publish(self, src, event):
         """
         callRemote('publish', src, event)
