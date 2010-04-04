@@ -1,6 +1,11 @@
+from zope.interface import implements
 from twisted.internet import reactor, defer
 
+from nodeset.core import interfaces
+
 class NodeMonitor:
+    implements(interfaces.heartbeat.INodeMonitor)
+    
     """
     Special class for handling heartbeat monitor and its callbacks and errbacks
     """
@@ -43,6 +48,7 @@ class NodeMonitor:
     
     
 class NodeHeartBeat:
+    implements(interfaces.heartbeat.INodeHeartBeat)
     
     def __init__(self, dispatcher):
         self.monitors = set()

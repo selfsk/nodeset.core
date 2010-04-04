@@ -40,7 +40,7 @@ def listen_main():
     multi = node.NodeCollection(5788)
     
     nn = SimpleNode()
-    n1 = multi.add(nn)
+    n1 = multi.adapt(nn)
     
     #n1.subscribe('event_1')
     

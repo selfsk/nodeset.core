@@ -1,4 +1,7 @@
+from zope.interface import implements
 
+from nodeset.core import interfaces
+ 
 class RoutingTable:
     """
     Routing table container
@@ -120,6 +123,7 @@ class RoutingTable:
             self.entries.remove(n)
         
 class RouteEntry:
+    implements(interfaces.routing.IRouteEntry)
     """
     Routing table entry, contains event name and subscribed nodes to such event
     @ivar name: event name
