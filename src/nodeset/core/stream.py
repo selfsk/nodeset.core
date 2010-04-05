@@ -1,6 +1,6 @@
 from twisted.internet import defer
 
-class Formatter:
+class Formater:
     """
     Stream formatter, provides encode/decode routins
     """
@@ -47,7 +47,7 @@ class Stream:
         defers = []
 
         for r in self.remote:
-            d = r.callRemote('stream', self.node.formatter.encode(data))
+            d = r.callRemote('stream', self.node.formater.encode(data))
             defers.append(d)
             
         if len(defers) > 1:

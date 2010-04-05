@@ -9,13 +9,13 @@ from twisted.application import service
 class StreamNodeExample(node.StreamNode):
     #streamFactory = stream.BinaryStream
     
-    formatter = stream.Formatter()
+    #formater = stream.Formater()
     
     def stream(self, stream_name):
         return stream.Stream(self, stream_name)
     
     def onStream(self, stream):
-        print "%s" % self.formatter.decode(stream)
+        print "%s" % self.formater.decode(stream)
         return "formatted"
     
 def _print(push_res):

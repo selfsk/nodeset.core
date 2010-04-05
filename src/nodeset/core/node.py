@@ -243,7 +243,7 @@ class StreamNode(Node):
     @type formatter: L{stream.Formatter}
     """
     
-    formatter = stream.Formatter
+    formater = stream.Formater()
     
     def onStream(self, stream):
         pass
