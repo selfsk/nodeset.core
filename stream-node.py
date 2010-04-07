@@ -7,33 +7,29 @@ from twisted.internet import reactor
 from twisted.application import service
 
 class StreamNodeExample(node.StreamNode):
-    #streamFactory = stream.BinaryStream
-    
-    #formater = stream.Formater()
-    
-    def stream(self, stream_name):
-        return stream.Stream(self, stream_name)
-    
-    def onStream(self, stream):
-        print "%s" % self.formater.decode(stream)
+   
+    def onStream(self, data, formatter):
+        print "%s" % formatter
+        print "%s" % formatter.decode(data)
         return "formatted"
     
 def _print(push_res):
     print push_res
     
-def pushStream(s):
-    s.push('hello stream #1').addCallback(_print)
+def _gotStream(stream):
+    stream.push('hello world #1').addCallback(_print)
+
+def getStream(pubNode, name):
+    
+    pubNode.stream(name).addCallback(_gotStream)
     
 def main():
     pub = StreamNodeExample(5556)
     sub = StreamNodeExample(5557)
     
-    
-    s = pub.stream('stream_name')
     reactor.callLater(1, sub.subscribe, 'stream_name')
-    reactor.callLater(2, s.getRemoteNode)
-    reactor.callLater(3, pushStream, s)
-
+    reactor.callLater(2, getStream, pub, 'stream_name')
+    
     pub.start()
     sub.start()
     

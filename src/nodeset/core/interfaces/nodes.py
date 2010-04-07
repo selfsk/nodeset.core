@@ -21,12 +21,18 @@ class INode(interface.Interface):
     def remote_event(event):
         """ foolscap's callRemote() callback """
     
+    def remote_stream(data, formatter):
+        """ callRemote('stream') callback """
+        
     def remote_heartbeat():
         """ callRemote('heartbeat') callback """
         
     def remote_error(error):
         """ callRemote('error') callback """
-        
+     
+    def onStream(data, formatter):
+        """ default handler for stream data """
+           
     def onError(error):
         """ default handler for error passed from dispatcher """
         
@@ -60,9 +66,14 @@ class INodeCollection(interface.Interface):
         
 class IStreamNode(INode):
     """ Streaming Node interface """
+
+    streamClass = interface.Attribute("stream class name, called to build stream")
     
-    def remote_stream(stream):
-        """ callRemote('stream') callback """
+    def getRemoteNode(stream_name):
+        """ gets list of rcps nodes for stream name """
+        
+    def buildStream(peers):
+        """ callback to build L{Stream} instance """
         
     def stream():
         """ stream interface """

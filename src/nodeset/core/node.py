@@ -207,6 +207,23 @@ class Node(Referenceable):
         @type error: NodeEventError
         """
         pass
+   
+    def onStream(self, stream):
+        """
+        default callback for stream events
+        @param stream: StreamEvent
+        @type stream: L{StreamEvent}
+        """
+        pass
+     
+    def remote_stream(self, data, formatter):
+        """
+        foolscap's method, will be called directly by StreamNode (which will push data to Node)
+        @param data: encoded stream data
+        @param formatter: formatter instance
+        @type formatter: L{Formatter}
+        """
+        return self.onStream(data, formatter)
     
     def remote_event(self, event):
         """
@@ -237,22 +254,39 @@ class Node(Referenceable):
     
 class StreamNode(Node):
     implements(interfaces.IStreamNode)
+    
     """
     Special case of Node, which supports streaming of any data
-    @ivar formatter: Stream foramtter class
-    @type formatter: L{stream.Formatter}
+    @ivar streamClass: Stream handling class
+    @type streamClass: L{stream.Stream}
     """
     
-    formater = stream.Formater()
+    streamClass = stream.Stream
+        
+    def getRemoteNode(self, stream_name):
+        """
+        Gets list of remote references for direct foolscap calls. Dispatcher will return list
+        instead of forwarding event to rcpt nodes
+        @param stream_name: eventURI 
+        """
+        return self.dispatcher.callRemote('stream', stream_name)
     
-    def onStream(self, stream):
-        pass
-    
-    def remote_stream(self, stream):
-        return self.onStream(stream)
-    
+    def buildStream(self, peers=None):
+        """
+        Called when getRemoteNode() returns list of peers
+        """
+        s = self.streamClass(self, peers)
+        
+        return s
+
     def stream(self, stream_name):
-        pass
+        """
+        Called to get L{Stream} instance with appropriate peers for this stream
+        @param stream_name: the same as eventURI
+        @param stream_name: L{str}
+        """
+        return self.getRemoteNode(stream_name).addCallback(self.buildStream).addErrback(self._error)
+        
     
 class NodeCollection(Node):
     

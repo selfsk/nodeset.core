@@ -2,7 +2,7 @@ from twisted.application import service as ts
 from twisted.internet import reactor
 
 from nodeset.common.twistedapi import run
-from nodeset.core import node, dispatcher
+from nodeset.core import node, dispatcher, slicers
 
 def run_dispatcher():
     d = dispatcher.EventDispatcher()

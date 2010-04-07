@@ -1,8 +1,8 @@
 from twisted.internet import defer
 
-class Formater:
+class Formatter:
     """
-    Stream formatter, provides encode/decode routins
+    Plain stream formatter, provides encode/decode routines
     """
     
     def encode(self, data):
@@ -20,41 +20,33 @@ class Formater:
 
 class Stream:
     """
-    Abstract Streaming class for StreamNode
+    Streaming class for StreamNode
+    @ivar formatterClass: stream formatter class, provides encode/decode
     """
     
-    def __init__(self, node, name):
-        self.node = node
-        self.name = name
-        self.remote = None
-        
-    def _getPeer(self, peers):
-        self.remote = peers
-
-    def _error(self, failure):
-        print "failure %s" % failure
-        
-    def getRemoteNode(self):
-        """
-        Gets remote reference for direct foolscap calls
-        """
-        return self.node.dispatcher.callRemote('stream', self.name).addCallback(self._getPeer).addErrback(self._error)
+    formatterClass = Formatter
     
+    def __init__(self, node, peers=None):
+        self.node = node
+        self.peers = peers
+        self.formatter = self.formatterClass()
+        
     def push(self, data):
         """
         Push new data to stream
         """
         defers = []
 
-        for r in self.remote:
-            d = r.callRemote('stream', self.node.formater.encode(data))
+        for peer in self.peers:
+            d = peer.callRemote('stream', self.formatter.encode(data), self.formatter)
+
             defers.append(d)
             
         if len(defers) > 1:
             return defer.DeferredList(defers)
         
         return defers.pop()
-    
 
+    
     
     
