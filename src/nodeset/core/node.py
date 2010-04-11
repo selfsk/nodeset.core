@@ -79,7 +79,7 @@ class Node(Referenceable):
     monitor = None
     builder = NodeEventBuilder()
     
-    def __init__(self, port=None, name=None, dispatcher_url=None):
+    def __init__(self, port=None, host=None, name=None, dispatcher_url=None):
         """ 
         @param port: listen port for Tub
         @param name: create named Tub, otherwise UUID will be generated
@@ -91,6 +91,7 @@ class Node(Referenceable):
         @ivar dispatcher: EventDispatcher remote reference
         """
 
+        self.host = host or 'localhost'
         self.port = port
         self.name = name
         
@@ -112,7 +113,7 @@ class Node(Referenceable):
     def start(self, timeout=0):
         self.tub = Tub()
         self.tub.listenOn('tcp:%d' % self.port)
-        self.tub.setLocation('localhost:%d' % self.port)
+        self.tub.setLocation('%s:%d' % (self.host, self.port))
         
         self.tub.registerReference(self, self.name)
         
@@ -279,13 +280,16 @@ class StreamNode(Node):
         
         return s
 
+    def streamError(self, failure):
+        print "streamError: %s" % failure
+        
     def stream(self, stream_name):
         """
         Called to get L{Stream} instance with appropriate peers for this stream
         @param stream_name: the same as eventURI
         @param stream_name: L{str}
         """
-        return self.getRemoteNode(stream_name).addCallback(self.buildStream).addErrback(self._error)
+        return self.getRemoteNode(stream_name).addCallback(self.buildStream).addErrback(self.streamError)
         
     
 class NodeCollection(Node):
