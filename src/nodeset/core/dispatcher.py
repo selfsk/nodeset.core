@@ -69,9 +69,11 @@ class EventDispatcher(Referenceable):
         
         if len(defers) > 1:
             return defer.DeferredList(defers)
-        else:
+        elif len(defers) == 1:
             return defers.pop()
-
+        else:
+            return
+        
     def remote_unsubscribe(self, event_name, node):
         log.msg("unsubscribe for %s by %s" % (event_name, node), logLevel=logging.INFO)
         

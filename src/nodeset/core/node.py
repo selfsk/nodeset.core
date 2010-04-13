@@ -117,7 +117,7 @@ class Node(Referenceable):
         
         self.tub.registerReference(self, self.name)
         
-        self._establish(timeout)
+        return self._establish(timeout)
         
     def _establish(self, timeout=0, application=None):
         d = self.tub.getReference(self.dispatcher_url)
@@ -137,7 +137,7 @@ class Node(Referenceable):
         for e in self.__subscribes:
             self.subscribe(name, self)
             
-        return remote
+        return self
     
     def _error(self, failure, timeout):
         log.msg("error - %s" % str(failure), logLevel=logging.ERROR)
