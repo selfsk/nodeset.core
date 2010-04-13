@@ -5,13 +5,11 @@ from nodeset.core import interfaces
 class RoutingTable:
     """
     Routing table container
-    @ivar entries: list of RouteEntry instances
+    @ivar entries: dict of RouteEntry instances 'event_name' -> [RouteEntry, RouteEntry,...]
     """
     
     entries = {}
-    #nodes = {}
-    #hosts = {}
-    #events = {}
+
     
     def __init__(self):
         self.factory = RouteEntryFactory()
@@ -81,8 +79,17 @@ class RoutingTable:
         if node:
             return [x for x in ns if x.getNode() == node]
         
+
         return ns 
         
+    def _lookupByNode(self, node):
+        rlist = []
+        for k in self.entries.values():
+            t = [x for x in k if x.getNode() == node]
+            if len(t):
+                rlist += t
+                
+        return rlist
             
     def get(self, event_uri):
         """
@@ -104,9 +111,10 @@ class RoutingTable:
         node_name, host, name = self._split_uri(event_uri)
 
         if not self.entries.has_key(name):
-            self.entries[name] = []
+            self.entries[name] = set()
             
-        self.entries[name].append(self.factory.getEntry(host, name, node))
+        self.entries[name].add(self.factory.getEntry(host, name, node))
+                        
         
     def remove(self, event_uri, node):
         """
@@ -120,13 +128,15 @@ class RoutingTable:
             nodes = self._lookup(event_uri, node)
         else:
             if isinstance(node, RouteEntry):
+                #node.alive = False
                 nodes = [node]
             else:
-                nodes = [x for x in self.entries if x.getNode() == node]
+                #print node
+                nodes = self._lookupByNode(node)
         
-        #XXX actual removing maybe could be pushed to background        
-        #for n in nodes:
-        #    self.entries.remove(n)
+        #XXX actual removing maybe could be pushed to background
+        for n in nodes:
+            self.entries[n.getEventName()].remove(n)
         
 class RouteEntry:
     implements(interfaces.routing.IRouteEntry)
@@ -139,6 +149,7 @@ class RouteEntry:
     name = None
     node = None
     host = None
+    alive = True
     
     def __init__(self, host, event_name, node):
         self.name = event_name
@@ -153,6 +164,9 @@ class RouteEntry:
     
     def getEventName(self):
         return self.name
+    
+    def __str__(self):
+        return str("%s@%s/%s (alive=%s)" % (self.node, self.host, self.name, self.alive))
     
 class RemoteRouteEntry(RouteEntry):
     """

@@ -1,6 +1,7 @@
 from foolscap.api import Referenceable, UnauthenticatedTub, Tub
 from foolscap.ipb import DeadReferenceError
 
+from twisted.internet import defer
 from twisted.python import log
 import logging
 
@@ -55,11 +56,21 @@ class EventDispatcher(Referenceable):
         @type event: L{NodeEvent}
         """
         log.msg("publishing %s" % (event), logLevel=logging.INFO)
-        #print "--> publishing %s" % event.name
+        #print "--> publishing %s rcpt %s" % (event, self.routing.get(event.name))
         
+        defers = []
         for s in self.routing.get(event.name):
             print "publishing %s to %s" % (event.name, s)
-            return s.getNode().callRemote('event', event).addErrback(self._dead_reference, s)
+            
+            d = s.getNode().callRemote('event', event).addErrback(self._dead_reference, s.getNode())
+            
+            defers.append(d)
+            
+        
+        if len(defers) > 1:
+            return defer.DeferredList(defers)
+        else:
+            return defers.pop()
 
     def remote_unsubscribe(self, event_name, node):
         log.msg("unsubscribe for %s by %s" % (event_name, node), logLevel=logging.INFO)
