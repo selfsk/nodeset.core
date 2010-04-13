@@ -155,15 +155,22 @@ class Node(Referenceable):
         reactor.callLater(timeout, self._establish, timeout)
         log.msg("re-initializing connection dispatcher in %d seconds" % timeout, logLevel=logging.ERROR)
      
-    def publish(self, event):
+    def publish(self, uri_or_event, *args):
         """
         publish event with name and event object (NodeEvent)
-        @param event: NodeEvent instance 
-        @type event: L{NodeEvent}
+        @param uri_or_event: NodeEvent instance 
+        @type event: L{NodeEvent} or L{str}
+        @param *args: additional arguments for builder.createEvent()
         @return: deferred
         """
 
         if self.dispatcher:
+            
+            if isinstance(uri_or_event, NodeEvent):
+                event = uri_or_event
+            else:
+                event = self.builder.createEvent(uri_or_event, *args)    
+            
             d = self.dispatcher.callRemote('publish', self, event)
             return d
   

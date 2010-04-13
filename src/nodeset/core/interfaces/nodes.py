@@ -39,7 +39,7 @@ class INode(interface.Interface):
     def onEvent(event):
         """ default event handler for node """
         
-    def publish(event):
+    def publish(uri_or_event, *args):
         """ publish event to dispatcher """
         
     def subscribe(name):

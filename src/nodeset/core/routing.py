@@ -8,7 +8,7 @@ class RoutingTable:
     @ivar entries: list of RouteEntry instances
     """
     
-    entries = []
+    entries = {}
     #nodes = {}
     #hosts = {}
     #events = {}
@@ -65,7 +65,9 @@ class RoutingTable:
         node_name, host, name = self._split_uri(event_uri)
         
         # first lookup only by event name
-        ns = [x for x in self.entries if x.getEventName() == name]
+        ns = self.entries[name]
+        
+        #ns = [x for x in self.entries if x.getEventName() == name]
         
         # then lookup by hostname
         if host:
@@ -100,8 +102,11 @@ class RoutingTable:
         @type node: L{Node}
         """
         node_name, host, name = self._split_uri(event_uri)
-        
-        self.entries.append(self.factory.getEntry(host, name, node))
+
+        if not self.entries.has_key(name):
+            self.entries[name] = []
+            
+        self.entries[name].append(self.factory.getEntry(host, name, node))
         
     def remove(self, event_uri, node):
         """
@@ -118,9 +123,10 @@ class RoutingTable:
                 nodes = [node]
             else:
                 nodes = [x for x in self.entries if x.getNode() == node]
-                
-        for n in nodes:
-            self.entries.remove(n)
+        
+        #XXX actual removing maybe could be pushed to background        
+        #for n in nodes:
+        #    self.entries.remove(n)
         
 class RouteEntry:
     implements(interfaces.routing.IRouteEntry)
