@@ -88,8 +88,6 @@ class NodeHeartBeat:
         @return: L{NodeMonitor}
         """
 
-        print node
-        
         # if node has its own specific monitor callbacks, use them before dispatchers one
         monitor = node.monitor or NodeMonitor(node)
         self.monitors.add(monitor)
