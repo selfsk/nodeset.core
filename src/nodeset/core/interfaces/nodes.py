@@ -7,7 +7,7 @@ class INode(interface.Interface):
     port = interface.Attribute("Node listen port")
     dispatcher = interface.Attribute("Dispatcher remote ref")
     monitor = interface.Attribute("heartbeat monitor")
-    builder = interface.Attribute("NodeEventBuilder instance")
+    builder = interface.Attribute("NodeMessageBuilder instance")
     tub = interface.Attribute("foolscap's Tub")
     
     __subscribers = interface.Attribute("Node's subscriptions")
@@ -18,7 +18,7 @@ class INode(interface.Interface):
         """ start routing for Node """
         
     # foolscaps callRemote callbacks
-    def remote_event(event):
+    def remote_event(event, msg):
         """ foolscap's callRemote() callback """
     
     def remote_stream(data, formatter):

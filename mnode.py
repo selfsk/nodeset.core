@@ -7,9 +7,9 @@ from twisted.internet import reactor
 import time
 class SimpleNode(node.Node):
     
-    def onEvent(self, event):
-        print "Got event %s" % (event)
-        return "return event_%s" % event.name
+    def onEvent(self, event, msg):
+        print "Got event %s, msg %s" % (event, msg)
+        return "return event_%s" % event
     
 
 class SimpleNode1(node.Node):
@@ -17,24 +17,24 @@ class SimpleNode1(node.Node):
     def _print(self, data):
         print "In node return %s" % data
         
-    def onEvent(self, event):
-        print "%s, #1 got event %s" % (self, event)
+    def onEvent(self, event, msg):
+        print "%s, #1 got event %s, msg %s" % (self, event, msg)
         #raise Exception("#1 exception")
         
-        self.publish(self.builder.createEvent('event_2', 'payload_inmulti')).addCallback(self._print)
-        self.publish(self.builder.createEvent('remote_event', 'payload')).addCallback(self._print)
+        self.publish('event_2', payload='payload_inmulti').addCallback(self._print)
+        self.publish('remote_event', payload='payload').addCallback(self._print)
         
         return "#1 return"
     
 class SimpleBlockNode(node.Node):
-    def onEvent(self, event):
-        print "Blocking event %s" % event
+    def onEvent(self, event_name, msg):
+        print "Blocking event %s" % event_name
         #return "return event_%s" % event.name
         
         time.sleep(5)
         print "Go ahead!"
         #raise Exception("Block exception")
-        return "block_%s" % event.name
+        return "block_%s" % event_name
 
 def listen_main():
     multi = node.NodeCollection(5788)

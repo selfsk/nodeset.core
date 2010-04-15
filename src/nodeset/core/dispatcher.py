@@ -47,7 +47,7 @@ class EventDispatcher(Referenceable):
         log.msg("Getting list of route entries for stream(%s) delivering" % stream_name)
         return [x.getNode() for x in self.routing.get(stream_name)]
       
-    def remote_publish(self, src, event):
+    def remote_publish(self, src, event_name, msg):
         """
         callRemote('publish', src, event)
         @param src: src reference
@@ -55,14 +55,14 @@ class EventDispatcher(Referenceable):
         @param event: event object
         @type event: L{NodeEvent}
         """
-        log.msg("publishing %s" % (event), logLevel=logging.INFO)
+        log.msg("publishing %s(msg=%s)" % (event_name, msg), logLevel=logging.INFO)
         #print "--> publishing %s rcpt %s" % (event, self.routing.get(event.name))
         
         defers = []
-        for s in self.routing.get(event.name):
-            print "publishing %s to %s" % (event.name, s)
+        for s in self.routing.get(event_name):
+            print "publishing %s to %s" % (event_name, s)
             
-            d = s.getNode().callRemote('event', event).addErrback(self._dead_reference, s.getNode())
+            d = s.getNode().callRemote('event', event_name, msg).addErrback(self._dead_reference, s.getNode())
             
             defers.append(d)
             

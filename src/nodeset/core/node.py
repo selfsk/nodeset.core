@@ -5,61 +5,34 @@ from uuid import uuid4
 from twisted.internet import reactor, defer
 from twisted.python import log, components
 
-from nodeset.core import routing, heartbeat, interfaces, stream
+from nodeset.core import routing, heartbeat, interfaces, stream, message
 import logging
 import signal
 
 from zope.interface import implements 
 
-class NodeEventBuilder:
+class NodeMessageBuilder:
     """
     We can't pass any arguments to NodeEvent, due to foolscap limitations 
     (i.e U{RemoteCopy<http://foolscap.lothar.com/docs/api/foolscap.copyable.RemoteCopy-class.html>}). This factory
     should be used for NodeEvent creation and configuration (Builder pattern)
     """
     
-    def createEvent(self, name, payload):
+    message = message.NodeMessage
+    
+    def createEvent(self, **kwargs):
         """
         create empty NodeEvent object, and then set name and payload values
         @param name: event name
         @param payload: payload
         @return NodeEvent
         """
-        event = NodeEvent()
-        event.name = name
-        event.payload = payload
-        
-        return event
-    
-class NodeEvent(Copyable, RemoteCopy):
-    """
-    Copyable object for events, for safe objects exchange between nodes
-    """
-    
-    """
-    @ivar typeToCopy: hardcoded 'node-event-0xdeadbeaf'  
-    @ivar copytype: hardcoded 'node-event-0xdeadbeaf'
-    """
-    typeToCopy = copytype = 'node-event-0xdeadbeaf'
-    
-    def __init__(self):
-        """
-        @param name: event name
-        @param payload: any object
-        """
-        self.name = None
-        self.payload = None
-   
-    def getStateToCopy(self):
-        return {'name': self.name, 'payload': self.payload}
+        msg = self.message()
 
-    def setCopyableState(self, state):
-        self.name = state['name']
-        self.payload = state['payload']
-        
-    def __str__(self):
-        return str("%s<%s>" % (self.name, self.payload))
-    
+        for k,v in kwargs.items():
+            setattr(msg, k, v)
+            
+        return msg
 
   
 class Node(Referenceable):
@@ -77,7 +50,7 @@ class Node(Referenceable):
     @type monior: L{NodeMonitor}
     """
     monitor = None
-    builder = NodeEventBuilder()
+    builder = NodeMessageBuilder()
     
     def __init__(self, port=None, host=None, name=None, dispatcher_url=None):
         """ 
@@ -155,7 +128,7 @@ class Node(Referenceable):
         reactor.callLater(timeout, self._establish, timeout)
         log.msg("re-initializing connection dispatcher in %d seconds" % timeout, logLevel=logging.ERROR)
      
-    def publish(self, uri_or_event, *args):
+    def publish(self, event_uri, **kwargs):
         """
         publish event with name and event object (NodeEvent)
         @param uri_or_event: NodeEvent instance 
@@ -165,13 +138,9 @@ class Node(Referenceable):
         """
 
         if self.dispatcher:
+            msg = self.builder.createEvent(**kwargs)    
+            d = self.dispatcher.callRemote('publish', self, event_uri, msg)
             
-            if isinstance(uri_or_event, NodeEvent):
-                event = uri_or_event
-            else:
-                event = self.builder.createEvent(uri_or_event, *args)    
-            
-            d = self.dispatcher.callRemote('publish', self, event)
             return d
   
     def subscribe(self, name):
@@ -199,11 +168,13 @@ class Node(Referenceable):
         
             return d
         
-    def onEvent(self, event):
+    def onEvent(self, event, msg):
         """
         default callback for event
-        @param event: object
-        @type event: NodeEvent
+        @param event: event name
+        @type event: L{str}
+        @param msg: NodeMessage
+        @type msg: L{NodeMessage}
         """
         pass
     
@@ -233,15 +204,17 @@ class Node(Referenceable):
         """
         return self.onStream(data, formatter)
     
-    def remote_event(self, event):
+    def remote_event(self, event, msg):
         """
         foolscap's method, will be called by EventDispatcher on event publishing. By default it calls onEvent(event),
         you can implement it in subclass to perform various events handling
-        @param event: object
-        @type event: L{NodeEvent}
+        @param event: event name 
+        @type event: L{str}
+        @param msg: NodeMessage instance
+        @type msg: L{NodeMessage}
         @return: None
         """
-        return self.onEvent(event)
+        return self.onEvent(event, msg)
  
     
     def remote_error(self, error):
@@ -347,25 +320,25 @@ class NodeCollection(Node):
         print "node %s, adapted %s" % (node, adapted)
         return adapted
     
-    def eventloop(self, node, event, defer):
+    def eventloop(self, node, event, msg, defer):
         """
         do onEvent
         """
         try:
-            defer.callback(node.onEvent(event))
+            defer.callback(node.onEvent(event, msg))
         except Exception, e:
             defer.errback(e)
         
-    def remote_event(self, event):
+    def remote_event(self, event, msg):
         """
         Do scheduling of event delivering through reactor
         """
-        nodes = self.events[event.name]
+        nodes = self.events[event]
         defers = []
         
         for n in nodes:
             d = defer.Deferred()
-            reactor.callLater(0, self.eventloop, n, event, d)
+            reactor.callLater(0, self.eventloop, n, event, msg, d)
 
             # if more nodes to come, do DeferredList instead
             if len(nodes):
@@ -390,13 +363,16 @@ class CollectionAdapter:
         self.original.subscribe = self.subscribe
         self.original.unsubscribe = self.unsubscribe
         
-    def publish(self, event):
+    def publish(self, event, **kwargs):
         if self.collection.dispatcher:
             # if is a message between nodes in collection - do direct message handling
-            if event.name in self.collection.events:
-                return self.collection.remote_event(event)
+            
+            m = self.original.builder.createEvent(**kwargs)
+            
+            if event in self.collection.events:
+                return self.collection.remote_event(event, m)
             else:
-                return self.collection.dispatcher.callRemote('publish', self.collection, event)
+                return self.collection.dispatcher.callRemote('publish', self.collection, event, m)
         
     def subscribe(self, name):
         if self.collection.dispatcher:

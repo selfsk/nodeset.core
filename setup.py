@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "nodeset",
-    version = "0.99.3",
+    version = "0.99.4",
     packages = find_packages('src'),
     package_dir = {'': 'src'},
 

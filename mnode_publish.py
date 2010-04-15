@@ -6,14 +6,14 @@ from twisted.internet import reactor
 
 class SimpleNode(node.Node):
     
-    def onEvent(self, event):
-        return "On event %s" % event
+    def onEvent(self, event_name, msg):
+        return "On event %s, msg %s" % (event_name, msg)
     
 def _print(rval):
     print rval
     
 def _publish(n, name, payload):
-    n.publish(n.builder.createEvent(name, payload)).addCallback(_print)
+    n.publish(name, payload=payload).addCallback(_print)
     
 def publish_main():
     n = SimpleNode(5688)

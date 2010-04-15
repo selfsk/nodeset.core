@@ -35,18 +35,18 @@ class Publisher(node.StreamNode):
 class Subscriber(node.StreamNode):
     
     def onStream(self, stream, formatter):
-        ev = self.builder.createEvent('#dumb', stream['payload'])
+        ev = self.builder.createEvent(payload=stream['payload'])
         
-        return self.onEvent(ev)
+        return self.onEvent('#dumb', ev)
     
         #return (True, time.time())
     
-    def onEvent(self, event):
+    def onEvent(self, event_name, msg):
         n = time.time()
-        if event.name == 'show_stats':
+        if event_name == 'show_stats':
             print "Subscriber stats(%s)" % self.stats
         else:
-            delta = n - event.payload
+            delta = n - msg.payload
            
             self.stats.rtt.append(delta)
             
@@ -63,23 +63,9 @@ class Subscriber(node.StreamNode):
 #def do_subscribe(sub, event_name, defer):
     
 def show_stats(none, publisher):
-    publisher.publish(publisher.builder.createEvent('show_stats', 'payload'))
+    publisher.publish('show_stats')
     print "Publisher stats(%s)" % publisher.stats
         
-
-def do_publishing(publisher, event_name, msg_num):
-    
-   
-    defers = []
-    for i in range(msg_num):
-        d = publisher.publish(publisher.builder.createEvent(event_name, time.time()))\
-                .addCallback(publisher.update)
-                
-        defers.append(d)
-
-    defer.DeferredList(defers).addCallback(show_stats, publisher)
-        
-    
 
 def do_streaming(stream, msg_count):
     
@@ -120,7 +106,7 @@ def main():
     reactor.callLater(1, sub.subscribe, 'stream_name')
     
     #reactor.callLater(2,do_publishing, pub, 'event_name', 3000)
-    reactor.callLater(3, gotStream, pub, 'stream_name', 3000)
+    reactor.callLater(3, gotStream, pub, 'stream_name', 3)
     application = service.Application('performance-test')
     
     
