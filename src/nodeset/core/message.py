@@ -2,7 +2,7 @@ from foolscap.api import Copyable, RemoteCopy
 
 import sys
 
-class MessageAttribute:
+class Attribute:
     """
     Helper class to define Message attributes, to make easy for foolscap to build Copyable objects
     """
@@ -31,8 +31,8 @@ class NodeMessage(Copyable, RemoteCopy):
     _attrs = {}
     
     def __init__(self):
-        MessageAttribute('name')
-        MessageAttribute('payload')
+        Attribute('name')
+        Attribute('payload')
         
     def __getattr__(self, name):
         if self._attrs.has_key(name):
@@ -59,7 +59,7 @@ class NodeMessage(Copyable, RemoteCopy):
 
     def setCopyableState(self, state):
         for k,v in state.items():
-            item = MessageAttribute(k)
+            item = Attribute(k)
             item.value = v
             
     

@@ -13,19 +13,20 @@ from zope.interface import implements
 
 class NodeMessageBuilder:
     """
-    We can't pass any arguments to NodeEvent, due to foolscap limitations 
+    We can't pass any arguments to NodeMessage, due to foolscap limitations 
     (i.e U{RemoteCopy<http://foolscap.lothar.com/docs/api/foolscap.copyable.RemoteCopy-class.html>}). This factory
-    should be used for NodeEvent creation and configuration (Builder pattern)
+    should be used for NodeMessage
     """
     
-    message = message.NodeMessage
+    def __init__(self, klass):
+        self.message = klass
     
     def createEvent(self, **kwargs):
         """
-        create empty NodeEvent object, and then set name and payload values
+        create NodeMessage object, kwargs sets attributes in message
         @param name: event name
         @param payload: payload
-        @return NodeEvent
+        @return L{NodeMessage}
         """
         msg = self.message()
 
@@ -36,21 +37,28 @@ class NodeMessageBuilder:
 
   
 class Node(Referenceable):
-    implements(interfaces.INode)
-    
     """
     Main atom of NodeSet framework, communication is build on top of simple interface:
      - publish
      - subscribe
      - unsubscribe
+
     """
-   
+
+    implements(interfaces.INode)
+    
     """
     @ivar monitor: HeartBeat monitor
     @type monior: L{NodeMonitor}
+    @ivar builder: Message builder
+    @type builder: L{NodeMessageBuilder}
+    @ivar message: message class (by default NodeMessage)
+    @type message: class
     """
+    
     monitor = None
-    builder = NodeMessageBuilder()
+    message = message.NodeMessage
+    builder = NodeMessageBuilder(message)
     
     def __init__(self, port=None, host=None, name=None, dispatcher_url=None):
         """ 
@@ -130,10 +138,10 @@ class Node(Referenceable):
      
     def publish(self, event_uri, **kwargs):
         """
-        publish event with name and event object (NodeEvent)
-        @param uri_or_event: NodeEvent instance 
-        @type event: L{NodeEvent} or L{str}
-        @param *args: additional arguments for builder.createEvent()
+        publish event with message (fields are **kwargs)
+        @param uri_or_event: eventURI 
+        @type event: L{str}
+        @param **kwargs: additional arguments for builder.createEvent()
         @return: deferred
         """
 
@@ -187,11 +195,13 @@ class Node(Referenceable):
         """
         pass
    
-    def onStream(self, stream):
+    def onStream(self, stream, formatter):
         """
         default callback for stream events
         @param stream: StreamEvent
         @type stream: L{StreamEvent}
+        @param formatter: Formatter
+        @type formatter: L{Formatter}
         """
         pass
      
@@ -234,13 +244,12 @@ class Node(Referenceable):
         return True
     
 class StreamNode(Node):
-    implements(interfaces.IStreamNode)
-    
     """
     Special case of Node, which supports streaming of any data
     @ivar streamClass: Stream handling class
     @type streamClass: L{stream.Stream}
     """
+    implements(interfaces.IStreamNode)
     
     streamClass = stream.Stream
         
@@ -273,13 +282,12 @@ class StreamNode(Node):
         
     
 class NodeCollection(Node):
-    
-    implements(interfaces.INodeCollection)
-    
     """
     Node which contain group of node, to avoid running each node as separate process
     @ivar events: dict for event_name -> list of L{Node}s
     """
+     
+    implements(interfaces.INodeCollection)
     
     events = {}
     
