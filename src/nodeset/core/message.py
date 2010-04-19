@@ -12,47 +12,41 @@ class Attribute:
         f = sys._getframe(1)
         
         msg = f.f_locals['self']
-        msg._attrs[name] = self
+        msg.attrs[name] = self
             
         self.name = name
         self.value = None
 
-        
-class NodeMessage(Copyable, RemoteCopy):
-    """
-    Base class for NodeSet messages
-    """
-    
+class _Message(Copyable, RemoteCopy):
     typeToCopy = copytype = 'node-message-0xdeadbeaf'
     
-    """
-    @ivar _attrs: dict of message attributes
-    """
-    _attrs = {}
-    
     def __init__(self):
-        Attribute('name')
-        Attribute('payload')
-        
+        self.attrs = {}
+    
     def __getattr__(self, name):
-        if self._attrs.has_key(name):
-            return self._attrs[name].value
-        
-        return self.__dict__[name]
-        
-    def __setattr__(self, name, value):
-        if self._attrs.has_key(name):
-            self._attrs[name].value = value
-            
+        if self.attrs.has_key(name):
+            return self.attrs[name].value
         elif self.__dict__.has_key(name):
-            self.__dict__[name] = value
-            
+            return self.__dict__[name]
         else:
-            raise KeyError("Class %s has no property %s" % (self, name))
-            
+            raise KeyError("getattr() - Class %s has no property %s" % (self, name))
+        
+    #def __setattr__(self, name, value):
+    #    if self.attrs.has_key(name):
+    #        self.attrs[name].value = value
+    #        
+    #    elif self.__dict__.has_key(name):
+    #        self.__dict__[name] = value
+    #        
+    #    else:
+    #        raise KeyError("setattr() - Class %s has no property %s" % (self, name))
+     
+    def set(self, name, value):
+        self.attrs[name].value = value
+           
     def getStateToCopy(self):
         d = {}
-        for k, v in self._attrs.items():
+        for k, v in self.attrs.items():
             d[v.name] = v.value
 
         return d
@@ -61,5 +55,20 @@ class NodeMessage(Copyable, RemoteCopy):
         for k,v in state.items():
             item = Attribute(k)
             item.value = v
+            
+class NodeMessage:
+    """
+    Base class for NodeSet messages
+    """
+    
+    """
+    @ivar _attrs: dict of message attributes
+    """
+    attrs = {}
+    
+    def __init__(self):
+        pass  
+  
+
             
     

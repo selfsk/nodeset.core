@@ -29,11 +29,21 @@ class NodeMessageBuilder:
         @return L{NodeMessage}
         """
         msg = self.message()
-
+        
+        #print msg.attrs
+        
+        # create message to pass to other side
+        _msg = message._Message()
+        _msg.attrs = msg.attrs
+        #_msg.setAttrs(msg.attrs)
+        
+        #_msg.setCopyableState = msg.setCopyableState
+        #_msg.getStateToCopy = msg.getStateToCopy
+        
         for k,v in kwargs.items():
-            setattr(msg, k, v)
-            
-        return msg
+            _msg.set(k, v)
+        
+        return _msg
 
   
 class Node(Referenceable):
@@ -58,7 +68,7 @@ class Node(Referenceable):
     
     monitor = None
     message = message.NodeMessage
-    builder = NodeMessageBuilder(message)
+    builderClass = NodeMessageBuilder
     
     def __init__(self, port=None, host=None, name=None, dispatcher_url=None):
         """ 
@@ -85,6 +95,8 @@ class Node(Referenceable):
         self.dispatcher_url = dispatcher_url or 'pbu://localhost:5333/dispatcher'
         self.dispatcher = None
    
+        self.builder = self.builderClass(self.message)
+        
     def _handle_signal(self, signo, bt):
         print "signal %d" % signo
         print "bt %s" % bt
@@ -98,13 +110,17 @@ class Node(Referenceable):
         
         self.tub.registerReference(self, self.name)
         
-        return self._establish(timeout)
+        # this defer will be called only after _gotDispatcher call
+        self.startDeferred = defer.Deferred()
         
-    def _establish(self, timeout=0, application=None):
+        self._establish(timeout)
+        return self.startDeferred
+        
+    def _establish(self, timeout=0, deferred=None):
         d = self.tub.getReference(self.dispatcher_url)
         d.addCallback(self._gotDispatcher).addErrback(self._error, timeout)
-        
-        return d
+    
+        return deferred
     
     def getApplication(self):
         return self.tub
@@ -117,10 +133,12 @@ class Node(Referenceable):
         # in case if we're reinitializing connection to dispatcher
         for e in self.__subscribes:
             self.subscribe(name, self)
-            
-        return self
+        
+        # fire startDeferred 
+        self.startDeferred.callback(self)
     
-    def _error(self, failure, timeout):
+    def _error(self, failure, timeout=1):
+        failure.trap(Exception)
         log.msg("error - %s" % str(failure), logLevel=logging.ERROR)
         self.dispatcher = None
         self._restart(timeout+2)
@@ -186,14 +204,6 @@ class Node(Referenceable):
         """
         pass
     
- 
-    def onError(self, error):
-        """
-        default callback for errors
-        @param error: NodeEventError
-        @type error: NodeEventError
-        """
-        pass
    
     def onStream(self, stream, formatter):
         """
@@ -226,14 +236,6 @@ class Node(Referenceable):
         """
         return self.onEvent(event, msg)
  
-    
-    def remote_error(self, error):
-        """
-        foolscap's method, will be called by EventDispatcher in case of error on rcpt side. 
-        @param error: error object
-        @type error: L{NodeEventError}
-        """
-        return self.onError(error)
 
     def remote_heartbeat(self):
         """

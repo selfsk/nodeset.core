@@ -98,8 +98,10 @@ class RoutingTable:
         @return: L{RouteEntry}
         @raise: KeyError
         """
-        
-        return self._lookup(event_uri)
+        try:
+            return self._lookup(event_uri)
+        except KeyError, e: # unkown URI, ignore it
+            return []
         
     def add(self, event_uri, node):
         """
