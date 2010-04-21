@@ -30,15 +30,9 @@ class NodeMessageBuilder:
         """
         msg = self.message()
         
-        #print msg.attrs
-        
         # create message to pass to other side
         _msg = message._Message()
         _msg.attrs = msg.attrs
-        #_msg.setAttrs(msg.attrs)
-        
-        #_msg.setCopyableState = msg.setCopyableState
-        #_msg.getStateToCopy = msg.getStateToCopy
         
         for k,v in kwargs.items():
             _msg.set(k, v)
@@ -138,7 +132,6 @@ class Node(Referenceable):
         self.startDeferred.callback(self)
     
     def _error(self, failure, timeout=1):
-        failure.trap(Exception)
         log.msg("error - %s" % str(failure), logLevel=logging.ERROR)
         self.dispatcher = None
         self._restart(timeout+2)

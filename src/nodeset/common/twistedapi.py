@@ -51,8 +51,9 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
                      ['profiler', None, "hotshot",
                       "Name of the profiler to use (%s)." %
                       ", ".join(app.AppProfiler.profilers)],
-                       
+                     ['dispatcher-url', None, 'pbu://localhost:5333/dispatcher', "Dispatcher's URL"]
                      ]
+
 
 
     def __init__(self, *a, **kw):
@@ -109,7 +110,7 @@ def run(application, options=NodeSetAppOptions):
     @param application: Application instance
     @type application: Application
     """
-    _run(runApp, application, NodeSetAppOptions)
+    _run(runApp, application, options)
    
 __all__ = ['run', 'runApp']
 

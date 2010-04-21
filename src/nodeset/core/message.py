@@ -31,16 +31,6 @@ class _Message(Copyable, RemoteCopy):
         else:
             raise KeyError("getattr() - Class %s has no property %s" % (self, name))
         
-    #def __setattr__(self, name, value):
-    #    if self.attrs.has_key(name):
-    #        self.attrs[name].value = value
-    #        
-    #    elif self.__dict__.has_key(name):
-    #        self.__dict__[name] = value
-    #        
-    #    else:
-    #        raise KeyError("setattr() - Class %s has no property %s" % (self, name))
-     
     def set(self, name, value):
         self.attrs[name].value = value
            
@@ -67,7 +57,8 @@ class NodeMessage:
     attrs = {}
     
     def __init__(self):
-        pass  
+        Attribute('payload')
+        Attribute('name')
   
 
             
