@@ -28,7 +28,9 @@ class Stats:
 class Publisher(node.Node):
 
     def update(self, rval):
-        print rval
+        if not isinstance(rval, list):
+            rval = [(True, rval)]
+            
         for flag, d in rval:
             now = time.time()
         
@@ -83,7 +85,7 @@ def do_publishing_iter(publisher, event_name, msg_num):
     defers = []
     for i in range(msg_num):
         n = time.time()
-        d = publisher.publish(event_name, payload=n).addCallback(publisher.update)
+        d = publisher.publish(event_name, payload=n, _delivery_mode='direct').addCallback(publisher.update)
         
         defers.append(d)
         
@@ -96,7 +98,7 @@ def do_publishing(publisher, event_name, msg_num):
         show_stats(None, publisher)
         return
 
-    d = publisher.publish(event_name, payload=time.time())\
+    d = publisher.publish(event_name, payload=time.time(), _delivery_mode='direct')\
               	.addCallback(publisher.update).addCallback(do_publishing, event_name, msg_num - 1)
                   
 
@@ -118,7 +120,7 @@ def main():
             pub.stats = Stats()
             
             pub.start()
-            reactor.callLater(1, do_publishing, pub, 'event_name', 3)
+            reactor.callLater(1, do_publishing, pub, 'event_name', 3000)
             
             pub.tub.setServiceParent(application)
         if config['subscriber']:

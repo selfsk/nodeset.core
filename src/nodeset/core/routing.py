@@ -1,7 +1,19 @@
 from zope.interface import implements
 
 from nodeset.core import interfaces
- 
+
+class RREntrySet(list):
+    def order(self):
+        e = self.pop(0)
+        self.append(e)
+    
+    def add(self, item):
+        try:
+            self.index(item)
+        except ValueError, e:
+            self.append(item)
+            
+    
 class RoutingTable:
     """
     Routing table container
@@ -62,25 +74,28 @@ class RoutingTable:
         """
         node_name, host, name = self._split_uri(event_uri)
         
+        
         # first lookup only by event name
         ns = self.entries[name]
+    
+        # change order of entries for next calls
+        self.entries[name].order()
         
         #ns = [x for x in self.entries if x.getEventName() == name]
         
         # then lookup by hostname
         if host:
-            ns = [x for x in ns if x.getHost() == host]
+            ns = RREntrySet([x for x in ns if x.getHost() == host])
         
         # and then lookup by node_name, but avoid check if node is wildcard
         if node_name and node_name != '*':
-            ns = [x for x in ns if x.getNode().name == node_name]
+            ns = RREntrySet([x for x in ns if x.getNode().name == node_name])
             
         # and then lookup by object instance
         if node:
-            return [x for x in ns if x.getNode() == node]
-        
+            return RREntrySet([x for x in ns if x.getNode() == node])
 
-        return ns 
+        return ns
         
     def _lookupByNode(self, node):
         rlist = []
@@ -113,7 +128,7 @@ class RoutingTable:
         node_name, host, name = self._split_uri(event_uri)
 
         if not self.entries.has_key(name):
-            self.entries[name] = set()
+            self.entries[name] = RREntrySet()
             
         self.entries[name].add(self.factory.getEntry(host, name, node))
                         
@@ -141,17 +156,19 @@ class RoutingTable:
             self.entries[n.getEventName()].remove(n)
         
 class RouteEntry:
-    implements(interfaces.routing.IRouteEntry)
     """
     Routing table entry, contains event name and subscribed nodes to such event
     @ivar name: event name
     @ivar node: Node instance
     @ivar host: Node's host
     """
+    implements(interfaces.routing.IRouteEntry)
+    
     name = None
     node = None
     host = None
     alive = True
+    weight = 1
     
     def __init__(self, host, event_name, node):
         self.name = event_name

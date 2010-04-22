@@ -66,6 +66,8 @@ class EventDispatcher(Referenceable):
             
             defers.append(d)
             
+            if msg._delivery_mode != 'all':
+                break
         
         if len(defers) > 1:
             return defer.DeferredList(defers)

@@ -7,7 +7,7 @@ class Attribute:
     Helper class to define Message attributes, to make easy for foolscap to build Copyable objects
     """
     
-    def __init__(self, name):
+    def __init__(self, name, value=None):
         
         f = sys._getframe(1)
         
@@ -15,7 +15,7 @@ class Attribute:
         msg.attrs[name] = self
             
         self.name = name
-        self.value = None
+        self.value = value
 
 class _Message(Copyable, RemoteCopy):
     typeToCopy = copytype = 'node-message-0xdeadbeaf'
@@ -59,7 +59,7 @@ class NodeMessage:
     def __init__(self):
         Attribute('payload')
         Attribute('name')
-  
+        Attribute('_delivery_mode', 'all')
 
             
     
