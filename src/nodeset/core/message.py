@@ -8,12 +8,14 @@ class Attribute:
     """
     
     def __init__(self, name, value=None):
-        
-        f = sys._getframe(1)
-        
-        msg = f.f_locals['self']
-        msg.attrs[name] = self
+        try:
+            f = sys._getframe(1)
             
+            msg = f.f_locals['self']
+            msg.attrs[name] = self
+        except KeyError, e:
+            pass
+        
         self.name = name
         self.value = value
 
@@ -54,12 +56,27 @@ class NodeMessage:
     """
     @ivar _attrs: dict of message attributes
     """
-    attrs = {}
+    attrs = {'_delivery_mode': Attribute('_delivery_mode', 'all')}
     
     def __init__(self):
         Attribute('payload')
         Attribute('name')
-        Attribute('_delivery_mode', 'all')
-
+        
+    def __getattr__(self, name):
+        if self.attrs.has_key(name):
+            return self.attrs[name].value
+        elif self.__dict__.has_key(name):
+            return self.__dict__[name]
+        else:
+            raise KeyError("getattr() - Class %s has no property %s" % (self, name))
+        
+    def __setattr__(self, name, value):
+        if self.attrs.has_key(name):
+            Attribute(name, value)
+        elif self.__dict__.has_key(name):
+            self.__dict__[name] = value
+        else:
+            raise KeyError("setattr() - Class %s has no property %s" % (self, name))    
+        
             
     
