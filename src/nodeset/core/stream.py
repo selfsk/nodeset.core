@@ -1,3 +1,6 @@
+"""
+Stream handling (encoding/decoding) base classes for StreamNodes
+"""
 from twisted.internet import defer
 
 class Formatter:

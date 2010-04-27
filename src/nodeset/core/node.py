@@ -1,3 +1,6 @@
+"""
+Base classes for Nodes, use them as base class for your Nodes
+"""
 from foolscap.api import Referenceable, Tub, Copyable, UnauthenticatedTub, RemoteCopy 
 from foolscap.ipb import DeadReferenceError
 from uuid import uuid4
@@ -10,6 +13,7 @@ import logging
 import signal
 
 from zope.interface import implements 
+import copy
 
 class NodeMessageBuilder:
     """
@@ -18,24 +22,26 @@ class NodeMessageBuilder:
     should be used for NodeMessage
     """
     
-    def __init__(self, klass):
-        self.message = klass
-    
-    def createEvent(self, **kwargs):
+    def createEvent(self, klass, **kwargs):
         """
         create NodeMessage object, kwargs sets attributes in message
-        @param name: event name
-        @param payload: payload
+        @param klass: message class (i.e. message.NodeMessage)
+        @param kwargs: fields of message
         @return L{NodeMessage}
         """
-        msg = self.message()
+        msg = klass()
         
-        # create message to pass to other side
+        # create message to pass to other side, kind of stub
         _msg = message._Message()
-        _msg.attrs = msg.attrs
+        # save attrs, otherwise set() raise exception
+        # we can't simply assign here, to avoid static members update, using deepcopy
+        _msg.attrs = copy.deepcopy(msg.attrs)
         
         for k,v in kwargs.items():
             _msg.set(k, v)
+        
+        #log.msg("message klass(%s), fields(%s), msg(%s), _msg(%s)" \
+        #        % (klass, kwargs, msg.attrs.items(), _msg.attrs.items()), logLevel=logging.DEBUG)
         
         return _msg
 
@@ -89,7 +95,7 @@ class Node(Referenceable):
         self.dispatcher_url = dispatcher_url or 'pbu://localhost:5333/dispatcher'
         self.dispatcher = None
    
-        self.builder = self.builderClass(self.message)
+        self.builder = self.builderClass()
         
     def _handle_signal(self, signo, bt):
         print "signal %d" % signo
@@ -147,7 +153,7 @@ class Node(Referenceable):
         reactor.callLater(timeout, self._establish, timeout)
         log.msg("re-initializing connection dispatcher in %d seconds" % timeout, logLevel=logging.ERROR)
      
-    def publish(self, event_uri, **kwargs):
+    def publish(self, event_uri, msgClass=message, **kwargs):
         """
         publish event with message (fields are **kwargs)
         @param uri_or_event: eventURI 
@@ -157,7 +163,8 @@ class Node(Referenceable):
         """
 
         if self.dispatcher:
-            msg = self.builder.createEvent(**kwargs)    
+            msg = self.builder.createEvent(msgClass, **kwargs)
+            print msg._delivery_mode    
             d = self.dispatcher.callRemote('publish', self, event_uri, msg)
             
             return d

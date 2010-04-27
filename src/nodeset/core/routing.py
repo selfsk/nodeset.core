@@ -1,13 +1,25 @@
+"""
+Dispatcher's routing classes
+"""
 from zope.interface import implements
 
 from nodeset.core import interfaces
 
 class RREntrySet(list):
+    """
+    Subclass of list for routing table entries. This class provides to additional methord (to list).
+    """
     def order(self):
+        """
+        re-order items in list (in this case it's round robin)
+        """
         e = self.pop(0)
         self.append(e)
     
     def add(self, item):
+        """
+        the same as for set(), if try to add already available item, exception will be raised
+        """
         try:
             self.index(item)
         except ValueError, e:
@@ -21,7 +33,6 @@ class RoutingTable:
     """
     
     entries = {}
-
     
     def __init__(self):
         self.factory = RouteEntryFactory()

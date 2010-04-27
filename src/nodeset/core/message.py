@@ -1,3 +1,6 @@
+"""
+Base classes for Messages, provides NodeMessage (base class for message), and Attribute - message attribute descriptor
+"""
 from foolscap.api import Copyable, RemoteCopy
 
 import sys
@@ -19,6 +22,12 @@ class Attribute:
         self.name = name
         self.value = value
 
+    def __repr__(self):
+        return repr(self.value)
+    
+    def __str__(self):
+        return str(self.value)
+    
 class _Message(Copyable, RemoteCopy):
     typeToCopy = copytype = 'node-message-0xdeadbeaf'
     

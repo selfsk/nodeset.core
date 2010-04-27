@@ -10,8 +10,12 @@ class PerfOptions(NodeSetAppOptions):
     
     optFlags = [
                 ['publisher', None, 'start publisher'],
-                ['subscriber', None, 'start subscriber']
+                ['subscriber', None, 'start subscriber'],
+                
                 ]
+    optParameters = [
+                     ['msgcount', None, 3, 'number of message to publish', int]
+                     ]
 class Stats:
     
     def __init__(self):
@@ -120,7 +124,7 @@ def main():
             pub.stats = Stats()
             
             pub.start()
-            reactor.callLater(1, do_publishing, pub, 'event_name', 3000)
+            reactor.callLater(1, do_publishing, pub, 'event_name', config['msgcount'])
             
             pub.tub.setServiceParent(application)
         if config['subscriber']:

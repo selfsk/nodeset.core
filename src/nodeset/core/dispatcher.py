@@ -1,3 +1,6 @@
+"""
+EventDispatcher's code, use this code to write your own dispatchers
+"""
 from foolscap.api import Referenceable, UnauthenticatedTub, Tub
 from foolscap.ipb import DeadReferenceError
 
@@ -65,7 +68,7 @@ class EventDispatcher(Referenceable):
             d = s.getNode().callRemote('event', event_name, msg).addErrback(self._dead_reference, s.getNode())
             
             defers.append(d)
-            
+
             if msg._delivery_mode != 'all':
                 break
         
