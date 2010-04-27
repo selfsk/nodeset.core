@@ -1,3 +1,4 @@
+ * verify all interfaces to according implementations
  * unit test for core functionality
  * make Node as subclass of Service (with startService/stopService), to avoid node.tub.setServiceParent() and
    to make handling of application options more reliable
