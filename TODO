@@ -1,4 +1,7 @@
  * unit test for core functionality
+ * make Node as subclass of Service (with startService/stopService), to avoid node.tub.setServiceParent() and
+   to make handling of application options more reliable
+ * addressing of defered return values in case of DeferredList (publish to multiple nodes)
  * routing messages between hosts (multiple dispatchers)
  * weighted subscriptions
 
