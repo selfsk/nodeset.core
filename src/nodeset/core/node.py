@@ -22,7 +22,7 @@ class NodeMessageBuilder:
     should be used for NodeMessage
     """
     
-    def createEvent(self, klass, **kwargs):
+    def createMessage(self, klass, **kwargs):
         """
         create NodeMessage object, kwargs sets attributes in message
         @param klass: message class (i.e. message.NodeMessage)
@@ -163,8 +163,7 @@ class Node(Referenceable):
         """
 
         if self.dispatcher:
-            msg = self.builder.createEvent(msgClass, **kwargs)
-            print msg._delivery_mode    
+            msg = self.builder.createMessage(msgClass, **kwargs)
             d = self.dispatcher.callRemote('publish', self, event_uri, msg)
             
             return d
