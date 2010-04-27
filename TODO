@@ -1,0 +1,4 @@
+ * unit test for core functionality
+ * routing messages between hosts (multiple dispatchers)
+ * weighted subscriptions
+

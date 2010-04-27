@@ -12,8 +12,6 @@ by dispatcher, the special unix process (also based on foolscap RPC).
 2. Node - Each Node can act as publisher, as well as subscribers. 
  2.1 StreamNode - special node for streaming. Streaming performed without dispatcher, to avoid performance penalty.
 
-Well, it all about publish/subscribe idea.
-
 * Goals
  - Distributed (each host has only one dispatcher, but many nodes. Events can be delivered between hosts)
  - Stateless (any node doesn't rely to dispatcher, if dispatcher will die, it does not affect nodes, as well as
@@ -30,6 +28,8 @@ There are few examples of NodeSet framework usage:
  * mnode.py - example of NodeCollection, as well as Node usage. Subscription example
  * mnode_publish.py - example of publishing
  * stream-node.py - example of StreamNode usage
+ * performance1.py - to test performance of message publishing/subscription, 
+      also has an example of NodeSetAppOptions usage
 
 To run any of example, first you must run dispatcher:
  - nodeset-dispatcher [options]
