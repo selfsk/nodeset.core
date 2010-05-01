@@ -31,6 +31,12 @@ def run_node_sub():
     n = node.Node(5334)
     application = ts.Application('nodeset-node-subscriber')
 
+    
+    def _print(e, m):
+        print m
+        
+    n.onEvent = _print
+    
     n.start()
     reactor.callLater(1, n.subscribe, 'simple_event')
     n.setServiceParent(application)
@@ -41,6 +47,7 @@ def run_node_pub():
     n = node.Node(5335)
     application = ts.Application('nodeset-node-publisher')
     n.start()
+
     
     n.setServiceParent(application)   
     reactor.callLater(3, n.publish, 'simple_event', payload='hello world')

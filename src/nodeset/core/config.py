@@ -5,7 +5,6 @@ def _singleton(klass):
         
     return klass._instance
 
-@_singleton
 class Configurator(object):
     
     _instance = None
@@ -34,3 +33,6 @@ class Configurator(object):
     
     def __setitem__(self, k, v):
         self._config[k] = v
+        
+# to make it work for python v.2.5
+Configurator = _singleton(Configurator)
