@@ -36,8 +36,8 @@ def main():
     application = service.Application('streaming')
     
     #n.addNode(node.Node()
-    pub.tub.setServiceParent(application)
-    sub.tub.setServiceParent(application)
+    pub.setServiceParent(application)
+    sub.setServiceParent(application)
     
     return run(application)
 

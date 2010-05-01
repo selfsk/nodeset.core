@@ -126,7 +126,7 @@ def main():
             pub.start()
             reactor.callLater(1, do_publishing, pub, 'event_name', config['msgcount'])
             
-            pub.tub.setServiceParent(application)
+            pub.setServiceParent(application)
         if config['subscriber']:
             sub = Subscriber(5444, dispatcher_url=config['dispatcher-url'])
             sub2 = Subscriber(5445, dispatcher_url=config['dispatcher-url'])
@@ -136,8 +136,8 @@ def main():
             sub.start().addCallback(do_subscribe)
             sub2.start().addCallback(do_subscribe)
             
-            sub.tub.setServiceParent(application)
-            sub2.tub.setServiceParent(application)
+            sub.setServiceParent(application)
+            sub2.setServiceParent(application)
             
     except usage.error, ue:
         print config

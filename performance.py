@@ -35,7 +35,7 @@ class Publisher(node.StreamNode):
 class Subscriber(node.StreamNode):
     
     def onStream(self, stream, formatter):
-        ev = self.builder.createEvent(payload=stream['payload'])
+        ev = self.builder.createMessage(self.message, payload=stream['payload'])
         
         return self.onEvent('#dumb', ev)
     
@@ -110,8 +110,8 @@ def main():
     application = service.Application('performance-test')
     
     
-    pub.tub.setServiceParent(application)
-    sub.tub.setServiceParent(application)
+    pub.setServiceParent(application)
+    sub.setServiceParent(application)
     
     return run(application)
 

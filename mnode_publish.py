@@ -26,7 +26,7 @@ def publish_main():
     reactor.callLater(4, _publish, n, 'event_3', 'payload_3')
     
     n.start()
-    n.tub.setServiceParent(application)
+    n.setServiceParent(application)
     
     run(application)
     

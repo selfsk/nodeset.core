@@ -4,6 +4,7 @@ EventDispatcher's code, use this code to write your own dispatchers
 from foolscap.api import Referenceable, UnauthenticatedTub, Tub
 from foolscap.ipb import DeadReferenceError
 
+from twisted.application import service
 from twisted.internet import defer
 from twisted.python import log
 import logging
@@ -11,20 +12,37 @@ import logging
 from nodeset.core import routing, heartbeat
 
 
-class EventDispatcher(Referenceable):
+class EventDispatcher(Referenceable, service.Service):
     """ 
     EventDispatcher instance is running on each host as separate process. Remote Nodes can subscribe for events
     on this dispatcher, too. Nodes are exchanging events through dispatcher.
     """
-    def __init__(self):
+    def __init__(self, dispatcher_url='pbu://localhost:5333/dispatcher'):
         self.routing = routing.RoutingTable() 
         self.tub = UnauthenticatedTub()
-        self.tub.listenOn('tcp:5333')
-        self.tub.setLocation('localhost:5333')
-        self.tub.registerReference(self, 'dispatcher')
-
+        
+        host, port, refname = self._split(dispatcher_url)
+        
+        self.tub.listenOn('tcp:%d' % port)
+        self.tub.setLocation('%s:%d' % (host, port))
+        self.tub.registerReference(self, refname)
         self.heartbeat = heartbeat.NodeHeartBeat(self)
         self.heartbeat.schedule(10)
+    
+    def _split(self, url):
+        
+        schema, rest = url.split('://')
+        location, ref = rest.split('/')
+        
+        host, port = location.split(':')
+        
+        return host, int(port), ref
+    
+    def startService(self):
+        self.tub.startService()
+
+    def stopService(self):
+        self.tub.stopService()
         
     def _dead_reference(self, fail, node):
         """

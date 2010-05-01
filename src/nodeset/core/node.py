@@ -5,17 +5,18 @@ from foolscap.api import Referenceable, Tub, Copyable, UnauthenticatedTub, Remot
 from foolscap.ipb import DeadReferenceError
 from uuid import uuid4
 
+from twisted.application import service
 from twisted.internet import reactor, defer
 from twisted.python import log, components
 
-from nodeset.core import routing, heartbeat, interfaces, stream, message
+from nodeset.core import routing, heartbeat, interfaces, stream, message, config
 import logging
 import signal
 
 from zope.interface import implements 
 import copy
 
-class NodeMessageBuilder:
+class MessageBuilder:
     """
     We can't pass any arguments to NodeMessage, due to foolscap limitations 
     (i.e U{RemoteCopy<http://foolscap.lothar.com/docs/api/foolscap.copyable.RemoteCopy-class.html>}). This factory
@@ -29,6 +30,7 @@ class NodeMessageBuilder:
         @param kwargs: fields of message
         @return L{NodeMessage}
         """
+        log.msg("building message for %s" % klass)
         msg = klass()
         
         # create message to pass to other side, kind of stub
@@ -46,7 +48,7 @@ class NodeMessageBuilder:
         return _msg
 
   
-class Node(Referenceable):
+class Node(Referenceable, service.Service):
     """
     Main atom of NodeSet framework, communication is build on top of simple interface:
      - publish
@@ -61,19 +63,23 @@ class Node(Referenceable):
     @ivar monitor: HeartBeat monitor
     @type monior: L{NodeMonitor}
     @ivar builder: Message builder
-    @type builder: L{NodeMessageBuilder}
+    @type builder: L{MessageBuilder}
     @ivar message: message class (by default NodeMessage)
     @type message: class
     """
     
     monitor = None
     message = message.NodeMessage
-    builderClass = NodeMessageBuilder
+    builderClass = MessageBuilder
     
-    def __init__(self, port=None, host=None, name=None, dispatcher_url=None):
+    def __init__(self, port=None, name=None, host=None, dispatcher_url=None):
         """ 
         @param port: listen port for Tub
         @param name: create named Tub, otherwise UUID will be generated
+        @param host: Tub's listen address
+        @param dispatcher_url: dispatcher's FURL
+        
+        All these params has priority to cmdline arguments, be careful!
         """
         
         """
@@ -82,20 +88,44 @@ class Node(Referenceable):
         @ivar dispatcher: EventDispatcher remote reference
         """
 
-        self.host = host or 'localhost'
-        self.port = port
-        self.name = name
-        
         # internal state of subscriptions, useful for re-establish connection to dispatcher
         self.__subscribes = []
         
         if not self.name:
             self.name = str(uuid4())
         
-        self.dispatcher_url = dispatcher_url or 'pbu://localhost:5333/dispatcher'
+        self.dispatcher_url = dispatcher_url
+        self.host = host or 'localhost'
+        self.port = port
+        
         self.dispatcher = None
-   
+
+        self.config = config.Configurator()
         self.builder = self.builderClass()
+        
+        self.cold_start = False # if true .start() was called
+        
+    def startService(self):
+        # if we're not started yet
+        if not self.cold_start:
+            self.start()
+
+        if not self.dispatcher_url:
+            self.dispatcher_url = self.config['dispatcher-url']
+        if not self.port:
+            self.host, self.port = self.config['listen'].split(':')
+        
+        self.tub = Tub()
+        self.tub.listenOn('tcp:%d' % int(self.port))
+        self.tub.setLocation('%s:%d' % (self.host, int(self.port)))
+        self.tub.registerReference(self, self.name)
+        
+        self.tub.startService()
+        
+        self._establish(2)
+        
+    def stopService(self):
+        self.tub.stopService()
         
     def _handle_signal(self, signo, bt):
         print "signal %d" % signo
@@ -103,17 +133,11 @@ class Node(Referenceable):
         
         reactor.callLater(0.1, self._restart, 2)
         
-    def start(self, timeout=0):
-        self.tub = Tub()
-        self.tub.listenOn('tcp:%d' % self.port)
-        self.tub.setLocation('%s:%d' % (self.host, self.port))
-        
-        self.tub.registerReference(self, self.name)
+    def start(self):
+        self.cold_start = True
         
         # this defer will be called only after _gotDispatcher call
         self.startDeferred = defer.Deferred()
-        
-        self._establish(timeout)
         return self.startDeferred
         
     def _establish(self, timeout=0, deferred=None):
@@ -153,7 +177,7 @@ class Node(Referenceable):
         reactor.callLater(timeout, self._establish, timeout)
         log.msg("re-initializing connection dispatcher in %d seconds" % timeout, logLevel=logging.ERROR)
      
-    def publish(self, event_uri, msgClass=message, **kwargs):
+    def publish(self, event_uri, msgClass=None, **kwargs):
         """
         publish event with message (fields are **kwargs)
         @param uri_or_event: eventURI 
@@ -163,6 +187,8 @@ class Node(Referenceable):
         """
 
         if self.dispatcher:
+            if not msgClass:
+                msgClass = self.message
             msg = self.builder.createMessage(msgClass, **kwargs)
             d = self.dispatcher.callRemote('publish', self, event_uri, msg)
             
@@ -372,11 +398,14 @@ class CollectionAdapter:
         self.original.subscribe = self.subscribe
         self.original.unsubscribe = self.unsubscribe
         
-    def publish(self, event, **kwargs):
+    def publish(self, event, msgClass=None, **kwargs):
         if self.collection.dispatcher:
             # if is a message between nodes in collection - do direct message handling
             
-            m = self.original.builder.createEvent(**kwargs)
+            if not msgClass:
+                msgClass = self.original.message
+                
+            m = self.original.builder.createMessage(msgClass, **kwargs)
             
             if event in self.collection.events:
                 return self.collection.remote_event(event, m)

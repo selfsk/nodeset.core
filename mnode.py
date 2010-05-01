@@ -61,7 +61,7 @@ def listen_main():
     application = service.Application('multi-node')
     
     #n.addNode(node.Node()
-    multi.tub.setServiceParent(application)
+    multi.setServiceParent(application)
     
     
     return run(application)

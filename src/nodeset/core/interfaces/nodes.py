@@ -27,19 +27,13 @@ class INode(interface.Interface):
     def remote_heartbeat():
         """ callRemote('heartbeat') callback """
         
-    def remote_error(error):
-        """ callRemote('error') callback """
-     
     def onStream(data, formatter):
         """ default handler for stream data """
            
-    def onError(error):
-        """ default handler for error passed from dispatcher """
-        
-    def onEvent(event):
+    def onEvent(event, msg):
         """ default event handler for node """
         
-    def publish(uri_or_event, *args):
+    def publish(uri_or_event, msgClass, **kwargs):
         """ publish event to dispatcher """
         
     def subscribe(name):

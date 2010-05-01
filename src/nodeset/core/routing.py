@@ -13,8 +13,11 @@ class RREntrySet(list):
         """
         re-order items in list (in this case it's round robin)
         """
-        e = self.pop(0)
-        self.append(e)
+        try:
+            e = self.pop(0)
+            self.append(e)
+        except IndexError, e:
+            pass
     
     def add(self, item):
         """

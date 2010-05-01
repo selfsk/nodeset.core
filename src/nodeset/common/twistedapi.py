@@ -11,6 +11,7 @@ import sys
 from twisted.scripts._twistd_unix import ServerOptions, \
             UnixApplicationRunner as _SomeApplicationRunner, _umask
     
+from nodeset.core.config import Configurator
 
 class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
     """
@@ -51,7 +52,8 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
                      ['profiler', None, "hotshot",
                       "Name of the profiler to use (%s)." %
                       ", ".join(app.AppProfiler.profilers)],
-                     ['dispatcher-url', None, 'pbu://localhost:5333/dispatcher', "Dispatcher's URL"]
+                     ['dispatcher-url', None, 'pbu://localhost:5333/dispatcher', "Dispatcher's URL"],
+                     ['listen', None, 'localhost:5666',  "Node's listen address (i.e. host:port)"]
                      ]
 
 
@@ -85,6 +87,8 @@ def runApp(config, application):
     runner = NodeSetApplicationRunner(config)
     runner.application = application
    
+    Configurator._config = config
+    
     runner.run()
 
 def _run(runApp, application, ServerOptions=NodeSetAppOptions):
@@ -102,6 +106,7 @@ def _run(runApp, application, ServerOptions=NodeSetAppOptions):
         print config
         print "%s: %s" % (sys.argv[0], ue)
     else:
+        application.config = config
         runApp(config, application)
         
 def run(application, options=NodeSetAppOptions):
