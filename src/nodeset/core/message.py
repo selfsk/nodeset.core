@@ -103,7 +103,7 @@ class NodeMessage:
         
     def __getattr__(self, name):
         if self.attrs.has_key(name):
-            return self.attrs[name].value
+            return self.attrs[name]
         elif self.__dict__.has_key(name):
             return self.__dict__[name]
         else:
