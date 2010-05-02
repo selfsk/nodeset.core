@@ -42,8 +42,9 @@ class EventDispatcher(Referenceable, service.Service):
         self.tub.startService()
 
     def stopService(self):
+        self.heartbeat.cancel()
         self.tub.stopService()
-        
+
     def _dead_reference(self, fail, node):
         """
         Errback for DeadReference exception handling

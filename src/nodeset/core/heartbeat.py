@@ -53,6 +53,10 @@ class NodeHeartBeat:
     def __init__(self, dispatcher):
         self.monitors = set()
         self.dispatcher = dispatcher
+        self.delayed = None
+        
+    def cancel(self):
+        self.delayed.cancel()
         
     def _lookup(self, node):
         """
@@ -111,7 +115,7 @@ class NodeHeartBeat:
         """
         Schedules heartbeating
         """
-        reactor.callLater(delay, self._do_heartbeat)
+        self.delayed = reactor.callLater(delay, self._do_heartbeat)
         
     def _do_heartbeat(self):
         """

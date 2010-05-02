@@ -35,9 +35,8 @@ class RoutingTable:
     @ivar entries: dict of RouteEntry instances 'event_name' -> [RouteEntry, RouteEntry,...]
     """
     
-    entries = {}
-    
     def __init__(self):
+        self.entries = {}
         self.factory = RouteEntryFactory()
         
     def _split_uri(self, event_uri):

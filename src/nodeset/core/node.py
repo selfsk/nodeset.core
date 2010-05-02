@@ -90,7 +90,7 @@ class Node(Referenceable, service.Service):
 
         # internal state of subscriptions, useful for re-establish connection to dispatcher
         self.__subscribes = []
-        
+        self.name = name
         if not self.name:
             self.name = str(uuid4())
         

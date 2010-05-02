@@ -22,6 +22,22 @@ class Attribute:
         self.name = name
         self.value = value
 
+    def __ne__(self, obj):
+        if not isinstance(obj, Attribute):
+            value = obj
+        else:
+            value = obj.value
+            
+        return self.value != value
+    
+    
+    def __eq__(self, obj):
+        if not isinstance(obj, Attribute):
+            value = obj
+        else:
+            value = obj.value
+        return self.value == obj.value
+    
     def __repr__(self):
         return repr(self.value)
     
@@ -36,7 +52,7 @@ class _Message(Copyable, RemoteCopy):
     
     def __getattr__(self, name):
         if self.attrs.has_key(name):
-            return self.attrs[name].value
+            return self.attrs[name]
         elif self.__dict__.has_key(name):
             return self.__dict__[name]
         else:
@@ -56,6 +72,20 @@ class _Message(Copyable, RemoteCopy):
         for k,v in state.items():
             item = Attribute(k)
             item.value = v
+            
+
+    def __eq__(self, obj):
+        for k,v in self.attrs.items():
+            try:
+                i = getattr(obj, k)
+                if i != v:
+                    return False
+                
+            except KeyError, e:
+                return False
+            
+        return True
+            
             
 class NodeMessage:
     """
