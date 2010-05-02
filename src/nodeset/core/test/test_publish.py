@@ -7,11 +7,16 @@ from nodeset.core import message
 from common import NodeTestCase
      
        
-class PublishTestCase(NodeTestCase):
+class PublishSubscribeTestCase(NodeTestCase):
     
     def checkReceivedData(self, data, node, event_name, message):
         self.assertEqual(node.event, event_name)
         self.assertEqual(node.msg, message)
+        
+    def testSubscribe(self):
+        # on setUp node do subscribe('event_name')
+        self.assertTrue('event_name' in self.node.getSubscriptions())
+        self.assertTrue(len(self.dispatcher.routing.get('event_name')) == 1)
         
     def testPublish(self):
         log.msg("dispatcher %s" % self.node.dispatcher)

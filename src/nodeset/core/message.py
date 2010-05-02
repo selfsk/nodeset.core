@@ -36,7 +36,8 @@ class Attribute:
             value = obj
         else:
             value = obj.value
-        return self.value == obj.value
+            
+        return self.value == value
     
     def __repr__(self):
         return repr(self.value)

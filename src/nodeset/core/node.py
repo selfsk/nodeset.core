@@ -89,7 +89,7 @@ class Node(Referenceable, service.Service):
         """
 
         # internal state of subscriptions, useful for re-establish connection to dispatcher
-        self.__subscribes = []
+        self.__subscriptions = []
         self.name = name
         if not self.name:
             self.name = str(uuid4())
@@ -105,6 +105,9 @@ class Node(Referenceable, service.Service):
         
         self.cold_start = False # if true .start() was called
         
+    def getSubscriptions(self):
+        return self.__subscriptions
+    
     def startService(self):
         # if we're not started yet
         if not self.cold_start:
@@ -155,7 +158,7 @@ class Node(Referenceable, service.Service):
         self.dispatcher = remote
 
         # in case if we're reinitializing connection to dispatcher
-        for e in self.__subscribes:
+        for e in self.getSubscriptions():
             self.subscribe(name, self)
         
         # fire startDeferred 
@@ -203,7 +206,7 @@ class Node(Referenceable, service.Service):
         
         if self.dispatcher:
             d = self.dispatcher.callRemote('subscribe', name, self)
-            self.__subscribes.append(name)
+            self.__subscriptions.append(name)
             return d
     
     def unsubscribe(self, name):

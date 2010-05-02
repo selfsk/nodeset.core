@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 
+
 setup(
     name = "nodeset",
     version = "0.99.5",
@@ -24,5 +25,7 @@ setup(
     # metadata for upload to PyPI
     description = "NodeSet framework",
 
-    # could also include long_description, download_url, classifiers, etc.
+    test_suite = 'nodeset.core.test',
+    test_loader = 'nodeset.core.test:TrialTestLoader'
+    # could also include long_description, d,wnload_url, classifiers, etc.
 )
