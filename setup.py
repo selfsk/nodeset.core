@@ -6,9 +6,10 @@ setup(
     version = "0.99.5",
     packages = find_packages('src'),
     package_dir = {'': 'src'},
-
-    # Project uses reStructuredText, so ensure that the docutils get
-    # installed or upgraded on the target machine
+    author = 'Sergei Kononov',
+    author_email = 'self.sik@gmail.com',
+    url = 'http://github.com/selfsk/nodeset.core',
+    
     install_requires = ['twisted>=9.0.0', 'foolscap>=0.5.0', 'pyopenssl'],
     
     package_data = {
@@ -18,14 +19,16 @@ setup(
 
     entry_points = {
                     'console_scripts': [
-                                        'nodeset-dispatcher = nodeset.core:run_dispatcher',
-                                        'nodeset-node-subscribe = nodeset.core:run_node_sub',
-                                        'nodeset-node-publish = nodeset.core:run_node_pub']},
+                                        'nodeset-dispatcher = nodeset.core.scripts:run_dispatcher',
+                                        'nodeset-node-subscribe = nodeset.core.scripts:run_node_sub',
+                                        'nodeset-node-publish = nodeset.core.scripts:run_node_pub']},
     
     # metadata for upload to PyPI
     description = "NodeSet framework",
 
     test_suite = 'nodeset.core.test',
-    test_loader = 'nodeset.core.test:TrialTestLoader'
+    test_loader = 'nodeset.core.test:TrialTestLoader',
+    
+    namespace_packages = ['nodeset']
     # could also include long_description, d,wnload_url, classifiers, etc.
 )

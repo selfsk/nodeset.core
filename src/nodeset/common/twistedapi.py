@@ -1,6 +1,7 @@
 
 from twisted.application import app
 from twisted.python import usage
+from twisted.python.log import ILogObserver
 from twisted.python.util import switchUID, uidFromString, gidFromString
 #from twisted.python.runtime import platformType
 
@@ -12,6 +13,7 @@ from twisted.scripts._twistd_unix import ServerOptions, \
             UnixApplicationRunner as _SomeApplicationRunner, _umask
     
 from nodeset.core.config import Configurator
+from nodeset.common import log
 
 class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
     """
@@ -86,7 +88,12 @@ def runApp(config, application):
     """
     runner = NodeSetApplicationRunner(config)
     runner.application = application
-   
+    
+    if config['logfile']:
+        import os
+        logfile = log.NodeSetLog(os.path.basename(config['logfile']), os.path.dirname(config['logfile']) or '.')
+        application.setComponent(ILogObserver, log.NodeSetLogObserver(logfile).emit)
+
     Configurator._config = config
     
     runner.run()

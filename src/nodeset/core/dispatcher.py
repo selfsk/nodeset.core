@@ -6,11 +6,11 @@ from foolscap.ipb import DeadReferenceError
 
 from twisted.application import service
 from twisted.internet import defer
-from twisted.python import log
+
 import logging
 
 from nodeset.core import routing, heartbeat
-
+from nodeset.common import log
 
 class EventDispatcher(Referenceable, service.Service):
     """ 
@@ -82,7 +82,7 @@ class EventDispatcher(Referenceable, service.Service):
         
         defers = []
         for s in self.routing.get(event_name):
-            print "publishing %s to %s" % (event_name, s)
+            log.msg("publishing %s to %s" % (event_name, s), logLevel=logging.DEBUG)
             
             d = s.getNode().callRemote('event', event_name, msg).addErrback(self._dead_reference, s.getNode())
             

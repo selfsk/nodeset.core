@@ -62,7 +62,7 @@ class Subscriber(node.Node):
         if event_name == 'show_stats':
             print "Subscriber stats(%s)" % self.stats
         else:
-            delta = n - msg.payload
+            delta = n - float(msg.payload)
            
             self.stats.rtt.append(delta)
             

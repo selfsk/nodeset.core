@@ -7,9 +7,11 @@ from uuid import uuid4
 
 from twisted.application import service
 from twisted.internet import reactor, defer
-from twisted.python import log, components
+from twisted.python import components
 
 from nodeset.core import routing, heartbeat, interfaces, stream, message, config
+#from nodeset.common.log import setLogger
+from nodeset.common import log
 import logging
 import signal
 
