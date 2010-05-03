@@ -22,6 +22,23 @@ class MessageTest(unittest.TestCase):
         
         self.assertTrue(m.payload == 'payload#1')
         
+    def testMessagePayloadTypes(self):
+        m = self.builder.createMessage(message.NodeMessage, payload=1)
+        
+        self.assertTrue(m.payload == 1)
+        m.payload = float(1.0)
+        
+        self.assertTrue(m.payload == 1.0)
+        
+        m.payload = ['1','2','3']
+        self.assertTrue(m.payload == ['1', '2', '3'])
+        
+        m.payload = (1, 2, 3)
+        self.assertTrue(m.payload == (1,2,3))
+        
+        m.payload = {'key': 'value'}
+        self.assertTrue(m.payload == {'key': 'value'})
+        
     def testMessageDeliveryMode(self):
         m = self.builder.createMessage(message.NodeMessage)
         

@@ -25,6 +25,8 @@ class RREntrySet(list):
         """
         try:
             self.index(item)
+            
+            raise IndexError("Dup entry")
         except ValueError, e:
             self.append(item)
             
@@ -86,7 +88,6 @@ class RoutingTable:
         return list of destination nodes
         """
         node_name, host, name = self._split_uri(event_uri)
-        
         
         # first lookup only by event name
         ns = self.entries[name]
@@ -200,6 +201,15 @@ class RouteEntry:
     def __str__(self):
         return str("%s@%s/%s (alive=%s)" % (self.node, self.host, self.name, self.alive))
     
+    def __eq__(self, obj):
+        if self.getNode() != obj.getNode() or \
+            self.getHost() != obj.getHost() or \
+            self.getEventName() != obj.getEventName():
+            return False
+        
+        return True
+            
+            
 class RemoteRouteEntry(RouteEntry):
     """
     Routing entry for remote Nodes
