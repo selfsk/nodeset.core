@@ -56,7 +56,8 @@ class NodeHeartBeat:
         self.delayed = None
         
     def cancel(self):
-        self.delayed.cancel()
+        if self.delayed and self.delayed.active():
+            self.delayed.cancel()
         
     def _lookup(self, node):
         """

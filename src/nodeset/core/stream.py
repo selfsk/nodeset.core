@@ -3,6 +3,8 @@ Stream handling (encoding/decoding) base classes for StreamNodes
 """
 from twisted.internet import defer
 
+from nodeset.common import log
+
 class Formatter:
     """
     Plain stream formatter, provides encode/decode routines
@@ -40,6 +42,8 @@ class Stream:
         """
         defers = []
 
+        log.msg("Pushing data to peers=%s" % self.peers)
+        
         for peer in self.peers:
             d = peer.callRemote('stream', self.formatter.encode(data), self.formatter)
 

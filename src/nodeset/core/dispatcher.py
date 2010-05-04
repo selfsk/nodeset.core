@@ -29,6 +29,10 @@ class EventDispatcher(Referenceable, service.Service):
         self.heartbeat = heartbeat.NodeHeartBeat(self)
         self.heartbeat.schedule(10)
     
+    def _neighbour(self):
+        if Configurator['neighbour']:
+            pass
+        
     def _split(self, url):
         
         schema, rest = url.split('://')

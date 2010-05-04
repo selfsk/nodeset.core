@@ -10,7 +10,8 @@ from nodeset.core import node, dispatcher, slicers
 class DispatcherOptions(NodeSetAppOptions):
     
     optParameters = [
-                     ['heartbeat', None, None, 'heartbeat period', int]
+                     ['heartbeat', None, None, 'heartbeat period', int],
+                     ['neighbour', None, None, 'neighbour address (semicolon separeted)']
                      ]
     
 import os

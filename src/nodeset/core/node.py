@@ -9,7 +9,7 @@ from twisted.application import service
 from twisted.internet import reactor, defer
 from twisted.python import components
 
-from nodeset.core import routing, heartbeat, interfaces, stream, message, config
+from nodeset.core import routing, heartbeat, interfaces, stream, message, config, slicers
 #from nodeset.common.log import setLogger
 from nodeset.common import log
 import logging
@@ -297,6 +297,8 @@ class StreamNode(Node):
         """
         Called when getRemoteNode() returns list of peers
         """
+        
+        log.msg("peers=%s" % peers)
         s = self.streamClass(self, peers)
         
         return s
@@ -310,7 +312,10 @@ class StreamNode(Node):
         @param stream_name: the same as eventURI
         @param stream_name: L{str}
         """
-        return self.getRemoteNode(stream_name).addCallback(self.buildStream).addErrback(self.streamError)
+        d = self.getRemoteNode(stream_name)
+        d.addCallback(self.buildStream).addErrback(self.streamError)
+        
+        return d
         
     
 class NodeCollection(Node):

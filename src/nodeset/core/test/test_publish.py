@@ -2,7 +2,7 @@ from twisted.trial import unittest
 from twisted.internet import defer, reactor
 from twisted.python import log
 
-from nodeset.core import message
+from nodeset.core import message, node
 
 from common import NodeTestCase
      
@@ -37,3 +37,8 @@ class PublishSubscribeTestCase(NodeTestCase):
         d.addCallback(self.checkReceivedData, self.node, 'event_name', m)
         
         return d
+
+   
+    
+        
+        

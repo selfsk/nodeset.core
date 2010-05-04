@@ -9,12 +9,12 @@ class INode(interface.Interface):
     monitor = interface.Attribute("heartbeat monitor")
     builder = interface.Attribute("NodeMessageBuilder instance")
     tub = interface.Attribute("foolscap's Tub")
-    
+    cold_start = interface.Attribute("Should be True in case of start() call")
     __subscribers = interface.Attribute("Node's subscriptions")
     
     
     
-    def start(timeout):
+    def start():
         """ start routing for Node """
         
     # foolscaps callRemote callbacks
@@ -54,7 +54,7 @@ class INodeCollection(interface.Interface):
     def removeEvent(event_name, node):
         """ remove node from subscriptions to event name """
         
-    def eventloop(node, event, defer):
+    def eventloop(node, event, msg, defer):
         """ do node.onEvent() callback and fire defer """
         
         
@@ -69,6 +69,6 @@ class IStreamNode(INode):
     def buildStream(peers):
         """ callback to build L{Stream} instance """
         
-    def stream():
+    def stream(stream_name):
         """ stream interface """
         
