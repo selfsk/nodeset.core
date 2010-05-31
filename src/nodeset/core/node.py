@@ -139,10 +139,10 @@ class Node(Referenceable, service.Service):
         self.tub.stopService()
         
     def _handle_signal(self, signo, bt):
-        print "signal %d" % signo
-        print "bt %s" % bt
+        log.msg("Handling signal %d, initiate re-connecting" % signo)
         
-        reactor.callLater(0.1, self._restart, 2)
+        if self.connector:
+            self.connector.reset()
         
     def start(self):
         self.cold_start = True
@@ -168,22 +168,6 @@ class Node(Referenceable, service.Service):
         if not self.startDeferred.called: 
             self.startDeferred.callback(self)
     
-    def _error(self, failure, timeout=1):
-        log.msg("error - %s" % str(failure), logLevel=logging.ERROR)
-        self.dispatcher = None
-        self._restart(timeout+2)
-        
-    def _restart(self, timeout):
-        """
-        re-initialize Node, if dispatcher was restarted
-        """
-        if timeout > 4:
-            log.msg("stop trying to reconnect after %d" % timeout, logLevel=logging.ERROR)
-            return
-        
-        reactor.callLater(timeout, self._establish, timeout)
-        log.msg("re-initializing connection dispatcher in %d seconds" % timeout, logLevel=logging.ERROR)
-     
     def publish(self, event_uri, msgClass=None, **kwargs):
         """
         publish event with message (fields are **kwargs)
