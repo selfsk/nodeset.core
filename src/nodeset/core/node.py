@@ -1,7 +1,8 @@
 """
 Base classes for Nodes, use them as base class for your Nodes
 """
-from foolscap.api import Referenceable, Tub, Copyable, UnauthenticatedTub, RemoteCopy 
+from foolscap.api import Referenceable, Tub, Copyable, UnauthenticatedTub, RemoteCopy
+from foolscap.reconnector import Reconnector 
 from foolscap.ipb import DeadReferenceError
 from uuid import uuid4
 
@@ -105,6 +106,8 @@ class Node(Referenceable, service.Service):
         self.config = config.Configurator()
         self.builder = self.builderClass()
         
+        self.connector = None
+        
         self.cold_start = False # if true .start() was called
         
     def getSubscriptions(self):
@@ -127,7 +130,10 @@ class Node(Referenceable, service.Service):
         
         self.tub.startService()
         
-        self._establish(2)
+        Reconnector.verbose = True
+        self.connector = Reconnector(self.dispatcher_url, self._gotDispatcher, (), {})
+        
+        self.connector.startConnecting(self.tub)
         
     def stopService(self):
         self.tub.stopService()
@@ -145,12 +151,6 @@ class Node(Referenceable, service.Service):
         self.startDeferred = defer.Deferred()
         return self.startDeferred
         
-    def _establish(self, timeout=0, deferred=None):
-        d = self.tub.getReference(self.dispatcher_url)
-        d.addCallback(self._gotDispatcher).addErrback(self._error, timeout)
-    
-        return deferred
-    
     def getApplication(self):
         return self.tub
     
@@ -160,11 +160,13 @@ class Node(Referenceable, service.Service):
         self.dispatcher = remote
 
         # in case if we're reinitializing connection to dispatcher
-        for e in self.getSubscriptions():
-            self.subscribe(name, self)
+        for name in self.getSubscriptions():
+            log.msg("re-subscribing to %s" % name)
+            self.subscribe(name)
         
-        # fire startDeferred 
-        self.startDeferred.callback(self)
+        # fire startDeferred only on first time
+        if not self.startDeferred.called: 
+            self.startDeferred.callback(self)
     
     def _error(self, failure, timeout=1):
         log.msg("error - %s" % str(failure), logLevel=logging.ERROR)
@@ -208,7 +210,9 @@ class Node(Referenceable, service.Service):
         
         if self.dispatcher:
             d = self.dispatcher.callRemote('subscribe', name, self)
-            self.__subscriptions.append(name)
+            
+            if name not in self.__subscriptions:
+                self.__subscriptions.append(name)
             return d
     
     def unsubscribe(self, name):

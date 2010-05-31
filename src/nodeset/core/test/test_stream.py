@@ -19,41 +19,44 @@ class StreamNodeTestCase(NodeTestCase):
         self.sender = TStreamNode(port=6111)
         self.receiver = TStreamNode(port=6112)
         
-        d = [] 
-        d.append(self.receiver.start().addCallback(lambda _: self.receiver.subscribe('stream_name')))
-        d.append(self.sender.start())
+        #d = []
+        d1 = self.receiver.start()
+        d1.addCallback(lambda n: n.subscribe('stream_name'))
+        d2 = self.sender.start()
+        d2.addCallback(lambda _: None)
+        
+        #d.append(d1)
+        #d.append(d2)
         
         self.receiver.startService()
         self.sender.startService()
         
-        return defer.DeferredList(d)
+        return defer.DeferredList([d1, d2])
     
     def tearDown(self):
         NodeTestCase.tearDown(self)
         
-        self.sender.stopService()
         self.receiver.stopService()
+        self.sender.stopService()
+        
         
         
     def testStreamNode(self):
-        #import twisted
-        #twisted.internet.base.DelayedCall.debug = True
-        
-        dl = []
-        d = defer.Deferred()
-        d.addCallback(lambda _: None)
-        def checkStreamData(push_ret):
-            log.msg("%s" % push_ret)
-            self.assertTrue(self.receiver.formatter.decode(self.receiver.data) == 'data_packet#1')
+        def checkStreamData(push_ret, rcv):
+            print push_ret
+            print rcv.formatter.decode(rcv.data)
+            #self.failUnlessTrue(self.receiver.formatter.decode(self.receiver.data) == 'data_packet#1')
             
-            d.callback(None)
             
         def gotStream(stream):
-            stream.push('data_packet#1').addCallback(checkStreamData)
+            return stream.push('data_packet#1')
         
-        d2 = self.sender.stream('stream_name').addCallback(gotStream)
-        dl.append(d2)
-        dl.append(d)
+        d2 = self.sender.stream('stream_name').addCallback(gotStream).addCallback(checkStreamData, self.receiver).addCallback(lambda _: None)
         
-        return defer.DeferredList(dl)
+        return d2
+        #dl.append(d2)
+        #dl.append(d)
+        
+        #self.fail
+        #return defer.DeferredList(dl)
     
