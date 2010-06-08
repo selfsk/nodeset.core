@@ -2,7 +2,7 @@
 Metric API for Nodes
 """
 
-from nodeset.core.stats import types
+from nodeset.core.stats import types, format
 
 class MetricStore:
     """
@@ -54,4 +54,29 @@ class Metric:
         else:
             return self.data
         
+class MetricCollection:
+    
+    def __init__(self, formatter=None):
+        self.__metrics = set()
+        
+        if not formatter:
+            self.fmt = format.Base()
+        else:
+            self.fmt = formatter
+    
+    def _get_fmt(self):
+        return self.fmt
+    def _set_fmt(self, fmt):
+        self.fmt = fmt
+                
+    formatter = property(_get_fmt, _set_fmt)
+    
+    def add(self, metric):
+        self.__metrics.add(metric)
+    
+    def remove(self, metric):
+        self.__metrics.remove(metric)
+        
+    def get(self):
+        return self.formatter.get(self.__metrics)
     

@@ -1,7 +1,7 @@
 from twisted.trial import unittest
 from nodeset.core.stats import metric, types
 
-class MetricTest(unittest.TestCase):
+class MetricTypesTest(unittest.TestCase):
     
     def test_Counter(self):
         c = metric.Metric('counter', types.Counter)
