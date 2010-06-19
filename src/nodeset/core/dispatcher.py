@@ -8,9 +8,13 @@ from twisted.application import service
 from twisted.internet import defer
 
 import logging
+import hashlib
 
-from nodeset.core import routing, heartbeat
+from nodeset.core import routing, heartbeat, config
 from nodeset.common import log
+
+# entangled DHT stuff
+from nodeset.core.dht import NodeSetDHT
 
 class EventDispatcher(Referenceable, service.Service):
     """ 
@@ -23,12 +27,19 @@ class EventDispatcher(Referenceable, service.Service):
         
         host, port, refname = self._split(dispatcher_url)
         
+        self.dispatcher_url = dispatcher_url
+        self.host = host
+        self.port = port
+        
         self.tub.listenOn('tcp:%d' % port)
         self.tub.setLocation('%s:%d' % (host, port))
         self.tub.registerReference(self, refname)
         self.heartbeat = heartbeat.NodeHeartBeat(self)
         self.heartbeat.schedule(10)
     
+        self.knownNodes = []
+        self.dht = None
+        
     def _neighbour(self):
         if Configurator['neighbour']:
             pass
@@ -42,9 +53,23 @@ class EventDispatcher(Referenceable, service.Service):
         
         return host, int(port), ref
     
+    def initDHT(self):
+        
+        c = config.Configurator()
+        
+        if c['dht-nodes']:
+            self.knownNodes = [x.split(':') \
+                               for x in c['dht-nodes'].split(',')]
+            self.knownNodes = map(lambda x: (x[0], int(x[1])), self.knownNodes)
+                                  
+        self.dht = NodeSetDHT(udpPort=c['dht-port'])
+        self.dht.setTub(self)
+        self.dht.joinNetwork(self.knownNodes)
+        
     def startService(self):
         self.tub.startService()
-
+        self.initDHT()
+        
     def stopService(self):
         self.heartbeat.cancel()
         self.tub.stopService()
@@ -73,9 +98,18 @@ class EventDispatcher(Referenceable, service.Service):
         log.msg("Getting list of route entries for stream(%s) delivering" % stream_name)
         return [x.getNode() for x in self.routing.get(stream_name)]
       
-    def remote_publish(self, src, event_name, msg):
+    def _prepare(self, event_uri):
+        
+        node_name, host, event = self.routing._split_uri(event_uri)
+        
+        if host == self.host:
+            host = 'localhost'
+            
+        return "%s@%s/%s" % (node_name, host, event)
+    
+    def remote_publish(self, event_name, msg):
         """
-        callRemote('publish', src, event)
+        callRemote('publish', event)
         @param src: src reference
         @type src: L{Node}
         @param event: event object
@@ -85,10 +119,15 @@ class EventDispatcher(Referenceable, service.Service):
         #print "--> publishing %s rcpt %s" % (event, self.routing.get(event.name))
         
         defers = []
-        for s in self.routing.get(event_name):
+        for s in self.routing.get(self._prepare(event_name)):
             log.msg("publishing %s to %s" % (event_name, s), logLevel=logging.DEBUG)
             
-            d = s.getNode().callRemote('event', event_name, msg).addErrback(self._dead_reference, s.getNode())
+            method = 'event'
+            
+            if isinstance(s, routing.RemoteRouteEntry):
+                method = 'publish'
+                
+            d = s.getNode().callRemote(method, event_name, msg).addErrback(self._dead_reference, s.getNode())
             
             defers.append(d)
 
@@ -102,15 +141,37 @@ class EventDispatcher(Referenceable, service.Service):
         else:
             return
         
-    def remote_unsubscribe(self, event_name, node):
+    def remote_unsubscribe(self, event_name, node, node_name=None):
         log.msg("unsubscribe for %s by %s" % (event_name, node), logLevel=logging.INFO)
-        
+        node.name = node_name
         self.routing.remove(event_name, node)
         if self.heartbeat.has(node):
             self.heartbeat.remove(node)
-            
-    def remote_subscribe(self, event_name, node):
+
+        host_name = 'localhost'
+        event_uri = self.get_event_uri(node_name, host_name, event_name)
+        
+        self.dht.iterativeDelete(self.hash_key(event_uri))
+                                 
+    def hash_key(self, key):
+        h = hashlib.sha1()
+        h.update(key)
+        
+        return h.digest()
+        
+    def get_event_uri(self, node_name, host_name, event_name):
+        return "%s@%s/%s" % (node_name, host_name, event_name)
+    
+    def remote_subscribe(self, event_name, node, node_name=None):
         log.msg("subscription to %s by %s" % (event_name, node), logLevel=logging.INFO)
+        
+        node.name = node_name
+        # store data about node, host and event into DHT
+        host_name = 'localhost'
+        event_uri = self.get_event_uri(node_name, self.host, event_name)
+        
+        self.dht.iterativeStore(self.hash_key(event_uri),
+                                (event_uri, self.dispatcher_url))
         
         self.routing.add(event_name, node)
         if not self.heartbeat.has(node):

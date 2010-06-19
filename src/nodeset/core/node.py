@@ -93,9 +93,7 @@ class Node(Referenceable, service.Service):
 
         # internal state of subscriptions, useful for re-establish connection to dispatcher
         self.__subscriptions = []
-        self.name = name
-        if not self.name:
-            self.name = str(uuid4())
+        self.name = name or str(uuid4())
         
         self.dispatcher_url = dispatcher_url
         self.host = host or 'localhost'
@@ -181,7 +179,7 @@ class Node(Referenceable, service.Service):
             if not msgClass:
                 msgClass = self.message
             msg = self.builder.createMessage(msgClass, **kwargs)
-            d = self.dispatcher.callRemote('publish', self, event_uri, msg)
+            d = self.dispatcher.callRemote('publish', event_uri, msg)
             
             return d
   
@@ -193,7 +191,7 @@ class Node(Referenceable, service.Service):
         """
         
         if self.dispatcher:
-            d = self.dispatcher.callRemote('subscribe', name, self)
+            d = self.dispatcher.callRemote('subscribe', name, self, self.name)
             
             if name not in self.__subscriptions:
                 self.__subscriptions.append(name)
@@ -207,7 +205,7 @@ class Node(Referenceable, service.Service):
         """
             
         if self.dispatcher:
-            d = self.dispatcher.callRemote('unsubscribe', name, self)
+            d = self.dispatcher.callRemote('unsubscribe', name, self, self.name)
             self.__subscribes.remove(name)
         
             return d
@@ -260,7 +258,7 @@ class Node(Referenceable, service.Service):
         dispatcher sends periodical heartbeat to Node, in reply return True for now 
         (DeadReferences are handled by dispacher automatically)
         """
-        log.msg("someone is heartbeating me")
+        #log.msg("someone is heartbeating me")
         return True
     
 class StreamNode(Node):

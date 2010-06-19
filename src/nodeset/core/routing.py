@@ -87,6 +87,8 @@ class RoutingTable:
         """
         return list of destination nodes
         """
+        print "looking up %s(%s)" % (event_uri, node)
+        
         node_name, host, name = self._split_uri(event_uri)
         
         # first lookup only by event name
@@ -95,20 +97,28 @@ class RoutingTable:
         # change order of entries for next calls
         self.entries[name].order()
         
+        print "do we have such event %s" % ns
         #ns = [x for x in self.entries if x.getEventName() == name]
         
         # then lookup by hostname
         if host:
             ns = RREntrySet([x for x in ns if x.getHost() == host])
         
+        print "do we have such host %s" % ns
+        
         # and then lookup by node_name, but avoid check if node is wildcard
         if node_name and node_name != '*':
-            ns = RREntrySet([x for x in ns if x.getNode().name == node_name])
+            ns1 = RREntrySet([x for x in ns if isinstance(x, LocalRouteEntry) and x.getNode().name == node_name])
+            
+            if len(ns1) > 0:
+                ns = ns1                           
             
         # and then lookup by object instance
         if node:
             return RREntrySet([x for x in ns if x.getNode() == node])
 
+        print ns
+        
         return ns
         
     def _lookupByNode(self, node):
@@ -145,7 +155,6 @@ class RoutingTable:
             self.entries[name] = RREntrySet()
             
         self.entries[name].add(self.factory.getEntry(host, name, node))
-                        
         
     def remove(self, event_uri, node):
         """

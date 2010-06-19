@@ -10,8 +10,8 @@ from nodeset.core import node, dispatcher, slicers
 class DispatcherOptions(NodeSetAppOptions):
     
     optParameters = [
-                     ['heartbeat', None, None, 'heartbeat period', int],
-                     ['neighbour', None, None, 'neighbour address (semicolon separeted)']
+                     ['dht-port', None, 4000, 'DHT listen port', int],
+                     ['dht-nodes', None, None, 'known nodes addresses (ip:port,ip2:port)']
                      ]
     
 import os
@@ -24,7 +24,7 @@ def run_dispatcher():
     try:
         config.parseOptions()
         
-        d = dispatcher.EventDispatcher(config['dispatcher-url'])
+        d = dispatcher.EventDispatcher(config['listen'])
         d.setServiceParent(application)
     except usage.error, ue:
         print config
