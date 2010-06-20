@@ -22,7 +22,7 @@ class EventDispatcher(Referenceable, service.Service):
     on this dispatcher, too. Nodes are exchanging events through dispatcher.
     """
     def __init__(self, dispatcher_url='pbu://localhost:5333/dispatcher'):
-        self.routing = routing.RoutingTable() 
+        self.routing = routing.RoutingTable(self) 
         self.tub = UnauthenticatedTub()
         
         host, port, refname = self._split(dispatcher_url)
@@ -98,15 +98,10 @@ class EventDispatcher(Referenceable, service.Service):
         log.msg("Getting list of route entries for stream(%s) delivering" % stream_name)
         return [x.getNode() for x in self.routing.get(stream_name)]
       
-    def _prepare(self, event_uri):
-        
-        node_name, host, event = self.routing._split_uri(event_uri)
-        
-        if host == self.host:
-            host = 'localhost'
-            
-        return "%s@%s/%s" % (node_name, host, event)
     
+    def _debug_print(self, data):
+        print "<-> %s" % data
+        
     def remote_publish(self, event_name, msg):
         """
         callRemote('publish', event)
@@ -119,20 +114,26 @@ class EventDispatcher(Referenceable, service.Service):
         #print "--> publishing %s rcpt %s" % (event, self.routing.get(event.name))
         
         defers = []
-        for s in self.routing.get(self._prepare(event_name)):
-            log.msg("publishing %s to %s" % (event_name, s), logLevel=logging.DEBUG)
+        for s in self.routing.get(event_name):
+            if isinstance(s, defer.Deferred):
+                print "delayed..."
+                # re-schedule remote_publish when we'll got everything we need
+                s.addCallback(lambda _: self.remote_publish(event_name, msg))
+            else:
+                log.msg("publishing %s to %s" % (event_name, s), logLevel=logging.DEBUG)
             
-            method = 'event'
+                method = 'event'
+                err_back = self._dead_reference
+                if isinstance(s, routing.RemoteRouteEntry):
+                    method = 'publish'
+                    err_back = lambda _: None
+                    
+                d = s.getNode().callRemote(method, event_name, msg).addErrback(err_back, s.getNode())
             
-            if isinstance(s, routing.RemoteRouteEntry):
-                method = 'publish'
-                
-            d = s.getNode().callRemote(method, event_name, msg).addErrback(self._dead_reference, s.getNode())
-            
-            defers.append(d)
+                defers.append(d)
 
-            if msg._delivery_mode != 'all':
-                break
+                if msg._delivery_mode != 'all':
+                    break
         
         if len(defers) > 1:
             return defer.DeferredList(defers)
@@ -140,40 +141,23 @@ class EventDispatcher(Referenceable, service.Service):
             return defers.pop()
         else:
             return
-        
-    def remote_unsubscribe(self, event_name, node, node_name=None):
+       
+    def buildUri(self, nname, ename):
+        return "%s@localhost/%s" % (nname, ename)
+     
+    def remote_unsubscribe(self, event_name, node, name):
         log.msg("unsubscribe for %s by %s" % (event_name, node), logLevel=logging.INFO)
-        node.name = node_name
-        self.routing.remove(event_name, node)
+        node.name = name
+        self.routing.remove(self.buildUr(node.name, event_name), node)
+        
         if self.heartbeat.has(node):
             self.heartbeat.remove(node)
-
-        host_name = 'localhost'
-        event_uri = self.get_event_uri(node_name, host_name, event_name)
-        
-        self.dht.iterativeDelete(self.hash_key(event_uri))
                                  
-    def hash_key(self, key):
-        h = hashlib.sha1()
-        h.update(key)
-        
-        return h.digest()
-        
-    def get_event_uri(self, node_name, host_name, event_name):
-        return "%s@%s/%s" % (node_name, host_name, event_name)
-    
-    def remote_subscribe(self, event_name, node, node_name=None):
+    def remote_subscribe(self, event_name, node, name):
         log.msg("subscription to %s by %s" % (event_name, node), logLevel=logging.INFO)
+        node.name = name
+        self.routing.add(self.buildUri(node.name, event_name), node)
         
-        node.name = node_name
-        # store data about node, host and event into DHT
-        host_name = 'localhost'
-        event_uri = self.get_event_uri(node_name, self.host, event_name)
-        
-        self.dht.iterativeStore(self.hash_key(event_uri),
-                                (event_uri, self.dispatcher_url))
-        
-        self.routing.add(event_name, node)
         if not self.heartbeat.has(node):
             #FIXME: workaround for missing monitor, foolscap does not pass ivars
             node.monitor = None

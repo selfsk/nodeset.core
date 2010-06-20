@@ -37,9 +37,10 @@ class RoutingTable:
     @ivar entries: dict of RouteEntry instances 'event_name' -> [RouteEntry, RouteEntry,...]
     """
     
-    def __init__(self):
+    def __init__(self, dispatcher):
         self.entries = {}
         self.factory = RouteEntryFactory()
+        self.dispatcher = dispatcher
         
     def _split_uri(self, event_uri):
         """
@@ -72,7 +73,7 @@ class RoutingTable:
        
         # in case of missing host -> localhost
         # in case of missing node -> *
-        if not host:
+        if not host or host == self.dispatcher.host:
             host = 'localhost'
         if not node:
             node = '*'
@@ -108,10 +109,7 @@ class RoutingTable:
         
         # and then lookup by node_name, but avoid check if node is wildcard
         if node_name and node_name != '*':
-            ns1 = RREntrySet([x for x in ns if isinstance(x, LocalRouteEntry) and x.getNode().name == node_name])
-            
-            if len(ns1) > 0:
-                ns = ns1                           
+            ns1 = RREntrySet([x for x in ns if x.getNode().name == node_name])
             
         # and then lookup by object instance
         if node:
@@ -129,7 +127,19 @@ class RoutingTable:
                 rlist += t
                 
         return rlist
+        
+    def _gotRem(self, remote, event_uri):
+        #n, h, e = self._split_uri(event_uri)
+        remote.name = '*'
+        self.add(event_uri, remote, dht=False)
             
+    def _handle_DHT(self, data, event_uri):
+        dispatcher_url = ''.join(data)
+        if len(data):
+            print "dispatcher URL from DHT %s" % dispatcher_url
+            return self.dispatcher.tub.getReference(dispatcher_url).addCallback(self._gotRem, event_uri)
+        
+        
     def get(self, event_uri):
         """
         Get recepients for event_uri
@@ -138,11 +148,20 @@ class RoutingTable:
         @raise: KeyError
         """
         try:
-            return self._lookup(event_uri)
+            ns = self._lookup(event_uri)
+            
+            #if not len(ns):
+            #    print "Searching in DHT"
+                
+            #    self.dispatcher.dht.searchForKeywords(event_uri).addCallback(self._dht_results)
+                
+            return ns
         except KeyError, e: # unkown URI, ignore it
-            return []
+            print "Searching in DHT... %s" % event_uri
+            return [self.dispatcher.dht.searchForKeywords(event_uri).addCallback(self._handle_DHT, event_uri)]
+            #return []
         
-    def add(self, event_uri, node):
+    def add(self, event_uri, node, dht=True):
         """
         Add new recepient for event
         @param event_uri: event URI
@@ -150,11 +169,24 @@ class RoutingTable:
         @type node: L{Node}
         """
         node_name, host, name = self._split_uri(event_uri)
-
+        key = "%s@%s/%s" % (node_name, host, name)
+        print "--> adding %s" % key
+        
+        if dht:
+            #if host == 'localhost':
+            #    host = self.dispatcher.host
+            
+            dht_key = "%s@%s/%s" % (node_name, self.dispatcher.host, name)
+            self.dispatcher.dht.publishData(dht_key, self.dispatcher.dispatcher_url)
+        #self.dispatcher.dht.iterativeStore(self.dispatcher.dht.hash_key(key),
+        #                                   (key, self.dispatcher.dispatcher_url))
+        
         if not self.entries.has_key(name):
             self.entries[name] = RREntrySet()
             
         self.entries[name].add(self.factory.getEntry(host, name, node))
+        
+        print self.entries
         
     def remove(self, event_uri, node):
         """
@@ -165,6 +197,7 @@ class RoutingTable:
         """
         
         if event_uri:
+
             nodes = self._lookup(event_uri, node)
         else:
             if isinstance(node, RouteEntry):
@@ -176,8 +209,14 @@ class RoutingTable:
         
         #XXX actual removing maybe could be pushed to background
         for n in nodes:
+            key = "%s@%s/%s" % (n.getNode().name, n.getHost(), n.getEventName())
+            print "--> remove key %s" % key
             self.entries[n.getEventName()].remove(n)
+            self.dispatcher.dht.removeData(key)
+            #self.dispatcher.dht.iterativeDelete(self.dispatcher.dht.hash_key(key))
         
+            
+            
 class RouteEntry:
     """
     Routing table entry, contains event name and subscribed nodes to such event

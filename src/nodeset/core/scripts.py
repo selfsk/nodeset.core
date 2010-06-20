@@ -33,7 +33,7 @@ def run_dispatcher():
         runApp(config, application)
     
 def run_node_sub():
-    n = node.Node(5334)
+    n = node.Node(5334, name='simple-subscriber')
     application = ts.Application('nodeset-node-subscriber')
 
     
