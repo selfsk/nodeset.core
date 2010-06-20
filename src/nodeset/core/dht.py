@@ -9,8 +9,25 @@ class NodeSetDHT(EntangledNode):
     def __init__(self, *args, **kwargs):
         EntangledNode.__init__(self, *args, **kwargs)
         self.nodeset = None
-        self.keywordSplitters = []
+        self.keywordSplitters = [',']
         
+    def searchData(self, name):
+        
+        key = self.hash_key(name)
+        
+        def checkResults(results):
+            print "DHT res; %s" % str(results)
+            
+            if type(results) == dict:
+                return results[key]
+            else:
+                return None
+            
+        df = self.iterativeFindValue(key)
+        df.addCallback(checkResults)
+        
+        return df
+    
     def setTub(self, nodeset):
         self.nodeset = nodeset
     

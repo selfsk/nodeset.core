@@ -9,7 +9,9 @@ class NodeTestCase(unittest.TestCase):
     def setUp(self):
         c = config.Configurator()
         c._config = {'dispatcher-url': 'pbu://localhost:5333/dispatcher',
-                     'listen': 'localhost:5444'}
+                     'listen': 'localhost:5444',
+                     'dht-nodes': None,
+                     'dht-port': 4000}
         
         self.dispatcher = dispatcher.EventDispatcher()
         self.dispatcher.startService()

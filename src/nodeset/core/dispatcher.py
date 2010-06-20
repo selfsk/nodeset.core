@@ -37,15 +37,7 @@ class EventDispatcher(Referenceable, service.Service):
         self.heartbeat = heartbeat.NodeHeartBeat(self)
         self.heartbeat.schedule(10)
     
-        self.knownNodes = []
-        self.dht = None
-        
-    def _neighbour(self):
-        if Configurator['neighbour']:
-            pass
-        
     def _split(self, url):
-        
         schema, rest = url.split('://')
         location, ref = rest.split('/')
         
@@ -53,27 +45,15 @@ class EventDispatcher(Referenceable, service.Service):
         
         return host, int(port), ref
     
-    def initDHT(self):
-        
-        c = config.Configurator()
-        
-        if c['dht-nodes']:
-            self.knownNodes = [x.split(':') \
-                               for x in c['dht-nodes'].split(',')]
-            self.knownNodes = map(lambda x: (x[0], int(x[1])), self.knownNodes)
-                                  
-        self.dht = NodeSetDHT(udpPort=c['dht-port'])
-        self.dht.setTub(self)
-        self.dht.joinNetwork(self.knownNodes)
-        
     def startService(self):
         self.tub.startService()
-        self.initDHT()
+        self.routing.initDHT(config.Configurator['dht-port'],
+                             config.Configurator['dht-nodes'])
         
     def stopService(self):
         self.heartbeat.cancel()
         self.tub.stopService()
-
+        
     def _dead_reference(self, fail, node):
         """
         Errback for DeadReference exception handling
@@ -142,21 +122,16 @@ class EventDispatcher(Referenceable, service.Service):
         else:
             return
        
-    def buildUri(self, nname, ename):
-        return "%s@localhost/%s" % (nname, ename)
-     
     def remote_unsubscribe(self, event_name, node, name):
         log.msg("unsubscribe for %s by %s" % (event_name, node), logLevel=logging.INFO)
-        node.name = name
-        self.routing.remove(self.buildUr(node.name, event_name), node)
+        self.routing.remove(event_name, node)
         
         if self.heartbeat.has(node):
             self.heartbeat.remove(node)
                                  
     def remote_subscribe(self, event_name, node, name):
         log.msg("subscription to %s by %s" % (event_name, node), logLevel=logging.INFO)
-        node.name = name
-        self.routing.add(self.buildUri(node.name, event_name), node)
+        self.routing.add(event_name, node, name)
         
         if not self.heartbeat.has(node):
             #FIXME: workaround for missing monitor, foolscap does not pass ivars

@@ -43,7 +43,7 @@ def run_node_sub():
     n.onEvent = _print
     
     n.start()
-    reactor.callLater(1, n.subscribe, 'simple_event')
+    reactor.callLater(1, n.subscribe, '%s@%s/simple_event' % (n.name, n.host))
     n.setServiceParent(application)
     
     return run(application)

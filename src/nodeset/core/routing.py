@@ -3,7 +3,8 @@ Dispatcher's routing classes
 """
 from zope.interface import implements
 
-from nodeset.core import interfaces
+from nodeset.core import interfaces, dht
+from nodeset.common import log
 
 class RREntrySet(list):
     """
@@ -41,7 +42,18 @@ class RoutingTable:
         self.entries = {}
         self.factory = RouteEntryFactory()
         self.dispatcher = dispatcher
+       
+        self.dht = None
+        self.knownNodes = []
         
+    def initDHT(self, port, nodes):
+        self.dht = dht.NodeSetDHT(udpPort=port)
+        if nodes:
+            self.knownNodes = [x.split(':') \
+                               for x in nodes.split(',')]
+            self.knownNodes = map(lambda x: (x[0], int(x[1])), self.knownNodes)
+            self.dht.joinNetwork(self.knownNodes)
+             
     def _split_uri(self, event_uri):
         """
         Parsing of event URI (i.e. node@host/event)
@@ -70,7 +82,6 @@ class RoutingTable:
         else:
             event = items[0]
 
-       
         # in case of missing host -> localhost
         # in case of missing node -> *
         if not host or host == self.dispatcher.host:
@@ -88,7 +99,7 @@ class RoutingTable:
         """
         return list of destination nodes
         """
-        print "looking up %s(%s)" % (event_uri, node)
+        log.msg("Looking up %s(%s)" % (event_uri, node))
         
         node_name, host, name = self._split_uri(event_uri)
         
@@ -98,25 +109,20 @@ class RoutingTable:
         # change order of entries for next calls
         self.entries[name].order()
         
-        print "do we have such event %s" % ns
         #ns = [x for x in self.entries if x.getEventName() == name]
         
         # then lookup by hostname
         if host:
             ns = RREntrySet([x for x in ns if x.getHost() == host])
         
-        print "do we have such host %s" % ns
-        
         # and then lookup by node_name, but avoid check if node is wildcard
         if node_name and node_name != '*':
-            ns1 = RREntrySet([x for x in ns if x.getNode().name == node_name])
+            ns1 = RREntrySet([x for x in ns if x.getName() == node_name])
             
         # and then lookup by object instance
         if node:
             return RREntrySet([x for x in ns if x.getNode() == node])
 
-        print ns
-        
         return ns
         
     def _lookupByNode(self, node):
@@ -129,14 +135,13 @@ class RoutingTable:
         return rlist
         
     def _gotRem(self, remote, event_uri):
-        #n, h, e = self._split_uri(event_uri)
-        remote.name = '*'
-        self.add(event_uri, remote, dht=False)
+        self.add(event_uri, remote, '*', dht=False)
             
     def _handle_DHT(self, data, event_uri):
+        log.msg("DHT: raw data %s" % data)
         dispatcher_url = ''.join(data)
         if len(data):
-            print "dispatcher URL from DHT %s" % dispatcher_url
+            log.msg("dispatcher URL from DHT %s" % dispatcher_url)
             return self.dispatcher.tub.getReference(dispatcher_url).addCallback(self._gotRem, event_uri)
         
         
@@ -148,20 +153,12 @@ class RoutingTable:
         @raise: KeyError
         """
         try:
-            ns = self._lookup(event_uri)
-            
-            #if not len(ns):
-            #    print "Searching in DHT"
-                
-            #    self.dispatcher.dht.searchForKeywords(event_uri).addCallback(self._dht_results)
-                
-            return ns
+            return self._lookup(event_uri)
         except KeyError, e: # unkown URI, ignore it
-            print "Searching in DHT... %s" % event_uri
-            return [self.dispatcher.dht.searchForKeywords(event_uri).addCallback(self._handle_DHT, event_uri)]
-            #return []
+            log.msg("Searching in DHT... %s" % event_uri)
+            return [self.dht.searchData(event_uri).addCallback(self._handle_DHT, event_uri)]
         
-    def add(self, event_uri, node, dht=True):
+    def add(self, event_uri, node, node_name=None, dht=True):
         """
         Add new recepient for event
         @param event_uri: event URI
@@ -170,23 +167,16 @@ class RoutingTable:
         """
         node_name, host, name = self._split_uri(event_uri)
         key = "%s@%s/%s" % (node_name, host, name)
-        print "--> adding %s" % key
+        log.msg("Adding %s to routing table" % key)
         
-        if dht:
-            #if host == 'localhost':
-            #    host = self.dispatcher.host
-            
+        if dht and self.dht:
             dht_key = "%s@%s/%s" % (node_name, self.dispatcher.host, name)
-            self.dispatcher.dht.publishData(dht_key, self.dispatcher.dispatcher_url)
-        #self.dispatcher.dht.iterativeStore(self.dispatcher.dht.hash_key(key),
-        #                                   (key, self.dispatcher.dispatcher_url))
+            self.dht.publishData(dht_key, self.dispatcher.dispatcher_url)
         
         if not self.entries.has_key(name):
             self.entries[name] = RREntrySet()
             
-        self.entries[name].add(self.factory.getEntry(host, name, node))
-        
-        print self.entries
+        self.entries[name].add(self.factory.getEntry(host, name, node, node_name))
         
     def remove(self, event_uri, node):
         """
@@ -197,7 +187,6 @@ class RoutingTable:
         """
         
         if event_uri:
-
             nodes = self._lookup(event_uri, node)
         else:
             if isinstance(node, RouteEntry):
@@ -209,12 +198,11 @@ class RoutingTable:
         
         #XXX actual removing maybe could be pushed to background
         for n in nodes:
-            key = "%s@%s/%s" % (n.getNode().name, n.getHost(), n.getEventName())
-            print "--> remove key %s" % key
+            key = "%s@%s/%s" % (n.getName(), n.getHost(), n.getEventName())
+            log.msg("Removing %s from routing table" % key)
             self.entries[n.getEventName()].remove(n)
-            self.dispatcher.dht.removeData(key)
-            #self.dispatcher.dht.iterativeDelete(self.dispatcher.dht.hash_key(key))
-        
+            if dht:
+                self.dht.removeData(key)
             
             
 class RouteEntry:
@@ -232,13 +220,17 @@ class RouteEntry:
     alive = True
     weight = 1
     
-    def __init__(self, host, event_name, node):
+    def __init__(self, host, event_name, node, node_name):
         self.name = event_name
         self.node = node
         self.host = host
+        self.node_name = node_name
         
     def getNode(self):
         return self.node
+    
+    def getName(self):
+        return self.name
     
     def getHost(self):
         return self.host
@@ -272,9 +264,9 @@ class LocalRouteEntry(RouteEntry):
 
 class RouteEntryFactory:
     
-    def getEntry(self, host, event, node):
+    def getEntry(self, host, event, node, node_name):
         if host == 'localhost':
-            return LocalRouteEntry(host, event, node)
+            return LocalRouteEntry(host, event, node, node_name)
         else:
-            return RemoteRouteEntry(host, event, node)
+            return RemoteRouteEntry(host, event, node, node_name)
         
