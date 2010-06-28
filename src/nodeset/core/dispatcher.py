@@ -21,19 +21,20 @@ class EventDispatcher(Referenceable, service.Service):
     EventDispatcher instance is running on each host as separate process. Remote Nodes can subscribe for events
     on this dispatcher, too. Nodes are exchanging events through dispatcher.
     """
-    def __init__(self, dispatcher_url='pbu://localhost:5333/dispatcher'):
+    def __init__(self, listen='pbu://localhost:5333/dispatcher'):
         self.routing = routing.RoutingTable(self) 
         self.tub = UnauthenticatedTub()
         
-        host, port, refname = self._split(dispatcher_url)
+        host, port, refname = self._split(listen)
         
-        self.dispatcher_url = dispatcher_url
+        self.listen_url = listen
         self.host = host
         self.port = port
         
         self.tub.listenOn('tcp:%d' % port)
         self.tub.setLocation('%s:%d' % (host, port))
         self.tub.registerReference(self, refname)
+        
         self.heartbeat = heartbeat.NodeHeartBeat(self)
         self.heartbeat.schedule(10)
     

@@ -1,20 +1,17 @@
 """
 Base classes for Nodes, use them as base class for your Nodes
 """
-from foolscap.api import Referenceable, Tub, Copyable, UnauthenticatedTub, RemoteCopy
+from foolscap.api import Referenceable, Tub
 from foolscap.reconnector import Reconnector 
-from foolscap.ipb import DeadReferenceError
 from uuid import uuid4
 
 from twisted.application import service
 from twisted.internet import reactor, defer
 from twisted.python import components
 
-from nodeset.core import routing, heartbeat, interfaces, stream, message, config, slicers
+from nodeset.core import interfaces, stream, message, config, slicers
 #from nodeset.common.log import setLogger
 from nodeset.common import log
-import logging
-import signal
 
 from zope.interface import implements 
 import copy
@@ -128,10 +125,8 @@ class Node(Referenceable, service.Service):
         
         self.tub.startService()
         
-        Reconnector.verbose = True
-        self.connector = Reconnector(self.dispatcher_url, self._gotDispatcher, (), {})
-        
-        self.connector.startConnecting(self.tub)
+        self._createConnector()
+
         
     def stopService(self):
         self.tub.stopService()
@@ -152,6 +147,18 @@ class Node(Referenceable, service.Service):
     def getApplication(self):
         return self.tub
     
+    def _createConnector(self, verbose=True):
+        """
+        Initialized Reconnector instance. Should be called after tub is initialized
+        """
+        Reconnector.verbose = True
+        self.connector = Reconnector(self.dispatcher_url, self._gotDispatcher, (), {})
+        self.connector.startConnecting(self.tub)
+      
+    def _dropConnector(self):
+        if self.connector._active:
+            self.connector.stopConnecting()  
+            
     def _gotDispatcher(self, remote):
         log.msg("got dispatcher %s" % remote)
         
@@ -438,4 +445,47 @@ class DeferNodeFactory:
         d.addCallback(_create_node, self.node, *args, **kwargs)
         
         return d
-   
+
+class ShellNode(Node):
+    """
+    Special purspose node, provides interactive shell to nodeset environment, you
+    can use this node to perform:
+     * subscribing/publishing
+     * getting internal information
+     * etc.
+    """
+
+    def setShell(self, shell):
+        self.shell = shell
+        self.shell.namespace['node'] = self
+        
+    def register(self, name, callbable):
+        """
+        Register callable in shell's namespace
+        """
+        assert(self.shell)
+        
+        self.shell.namespace[name] = callable
+
+    def unregister(self, name):
+        """
+        Unregister callable in shell's namespace
+        """
+        assert(self.shell)
+        del self.shell.namespace[name]
+        
+    def switch(self, URL):
+        """
+        Switch to another dispatcher (by FURL)
+        """
+        self.dispatcher_url = URL
+        
+        self._dropConnector()
+        self._createConnector()
+
+        
+        
+    
+    
+        
+    

@@ -171,7 +171,7 @@ class RoutingTable:
         
         if dht and self.dht:
             dht_key = "%s@%s/%s" % (node_name, self.dispatcher.host, name)
-            self.dht.publishData(dht_key, self.dispatcher.dispatcher_url)
+            self.dht.publishData(dht_key, self.dispatcher.listen_url)
         
         if not self.entries.has_key(name):
             self.entries[name] = RREntrySet()

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "nodeset",
-    version = "0.99.7",
+    version = "0.99.8",
     packages = find_packages('src'),
     package_dir = {'': 'src'},
     author = 'Sergei Kononov',
@@ -23,7 +23,7 @@ setup(
                                         'nodeset-node-subscribe = nodeset.core.scripts:run_node_sub',
                                         'nodeset-node-publish = nodeset.core.scripts:run_node_pub',
                                         'nodeset-monitor = nodeset.core.stats.scripts:main',
-                                        'nodeset-dht = nodeset.core.dht:main']},
+                                        'nodeset-shell = nodeset.core.scripts:run_shell']},
     
     # metadata for upload to PyPI
     description = "NodeSet framework",

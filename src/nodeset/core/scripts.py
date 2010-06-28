@@ -1,20 +1,38 @@
-from twisted.application import service as ts
+from twisted.application import service as ts, internet
 from twisted.internet import reactor
 from twisted.python import usage
-from twisted.python.log import ILogObserver
+
 
 from nodeset.common.twistedapi import run, NodeSetAppOptions, runApp
-from nodeset.common import log
-from nodeset.core import node, dispatcher, slicers
+from nodeset.core import node, dispatcher
 
 class DispatcherOptions(NodeSetAppOptions):
     
     optParameters = [
                      ['dht-port', None, 4000, 'DHT listen port', int],
-                     ['dht-nodes', None, None, 'known nodes addresses (ip:port,ip2:port)']
+                     ['dht-nodes', None, None, 'known nodes addresses (ip:port,ip2:port)'],
+                     ['listen', None, 'pbu://localhost:5333/dispatcher', 'dispatcher listen FURL']
                      ]
+  
+def run_shell():
+    from twisted.manhole.telnet import ShellFactory
     
-import os
+    application = ts.Application('nodeset-shell')
+    n = node.ShellNode()
+    n.setServiceParent(application)
+    
+    
+    sfactory = ShellFactory()
+    #sfactory.namespace['node'] = n
+    #sfactory.namespace['service'] = application
+    
+    n.setShell(sfactory)
+        
+    shell = internet.TCPServer(10331, sfactory)
+    shell.setServiceParent(application)
+    
+    run(application)
+      
 def run_dispatcher():
     
     config = DispatcherOptions()
@@ -23,7 +41,8 @@ def run_dispatcher():
     
     try:
         config.parseOptions()
-        
+
+        #if not config['listen'].startswith('pb'):
         d = dispatcher.EventDispatcher(config['listen'])
         d.setServiceParent(application)
     except usage.error, ue:
