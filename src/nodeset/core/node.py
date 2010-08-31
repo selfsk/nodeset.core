@@ -247,7 +247,7 @@ class Node(Referenceable, service.Service):
         """
         return self.onStream(data, formatter)
     
-    def remote_event(self, event, msg, bubble=True):
+    def remote_event(self, event, msg, bubble=False):
         """
         foolscap's method, will be called by EventDispatcher on event publishing. By default it calls onEvent(event),
         you can implement it in subclass to perform various events handling
@@ -263,7 +263,8 @@ class Node(Referenceable, service.Service):
             return self.onEvent(event, msg)
         except Exception, e:
             if not bubble:
-                log.msg("error: %s" % e)
+                log.err(e)
+                
             else:
                 raise e
  
