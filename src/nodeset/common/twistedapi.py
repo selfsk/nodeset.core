@@ -66,7 +66,7 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
         
         # set some twisted option to default values
         self['no_save'] = True
-        
+       
 class NodeSetApplicationRunner(_SomeApplicationRunner):
     """
     Adoption of U{UnixApplicationRunner<http://twistedmatrix.com/documents/9.0.0/api/twisted.scripts._twistd_unix.UnixApplicationRunner.html>} 

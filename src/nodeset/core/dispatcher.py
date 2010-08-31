@@ -14,7 +14,7 @@ from nodeset.core import routing, heartbeat, config
 from nodeset.common import log
 
 # entangled DHT stuff
-from nodeset.core.dht import NodeSetDHT
+from nodeset.core.dht import NodeSetDHT, NodeSetDataStore
 
 class EventDispatcher(Referenceable, service.Service):
     """ 
@@ -46,16 +46,46 @@ class EventDispatcher(Referenceable, service.Service):
         
         return host, int(port), ref
     
+ 
+        
     def startService(self):
         self.tub.startService()
-        self.routing.initDHT(config.Configurator['dht-port'],
-                             config.Configurator['dht-nodes'])
         
+        if config.Configurator['dht-port']:
+            self.dht = NodeSetDHT(config.Configurator['dht-port'], dataStore=NodeSetDataStore())
+            self.routing.dht = self.dht
+            
+            def publishToDHT(eventDict, listen_url):
+                dht_key = "%s@%s" % (eventDict['parsed_uri'].eventName, eventDict['parsed_uri'].nodeName)
+                 
+                print "publishing to DHT key(%s), value(%s)" % (dht_key, listen_url)
+                self.dht.publishData(dht_key, listen_url)
+              
+            def removeFromDHT(eventDict, listen_url):
+                dht_key = "%s@%s" % (eventDict['parsed_uri'].eventName, eventDict['parsed_uri'].nodeName)
+                print "Removing from DHT key(%s),value(%s)" % (dht_key, listen_url)
+                
+                self.dht.removeData(dht_key)
+                
+            self.routing.addObserver('add', publishToDHT, self.listen_url)
+            self.routing.addObserver('remove', removeFromDHT, self.listen_url)
+            
+            if config.Configurator['dht-nodes']:
+                snodes = config.Configurator['dht-nodes']
+                ntuple = [x.split(':') for x in snodes.split(',')]
+                
+                
+                ntuple = [(x[0], int(x[1])) for x in ntuple]
+                
+                print ntuple
+                
+                self.dht.joinNetwork(ntuple)
+            
     def stopService(self):
         self.heartbeat.cancel()
         self.tub.stopService()
         
-    def _dead_reference(self, fail, node):
+    def _dead_reference(self, fail, event_uri, node):
         """
         Errback for DeadReference exception handling
         @param fail: twisted failure object
@@ -65,7 +95,7 @@ class EventDispatcher(Referenceable, service.Service):
         """
         fail.trap(DeadReferenceError)
         log.msg("dead reference %s, drop it" % node, logLevel=logging.WARNING)
-        self.routing.remove(None, node)
+        self.routing.remove(event_uri, node)
         
         node.monitor = None
         
@@ -83,45 +113,50 @@ class EventDispatcher(Referenceable, service.Service):
     def _debug_print(self, data):
         print "<-> %s" % data
         
-    def remote_publish(self, event_name, msg):
-        """
-        callRemote('publish', event)
-        @param src: src reference
-        @type src: L{Node}
-        @param event: event object
-        @type event: L{NodeEvent}
-        """
-        log.msg("publishing %s(msg=%s)" % (event_name, msg), logLevel=logging.INFO)
-        #print "--> publishing %s rcpt %s" % (event, self.routing.get(event.name))
-        
+    def _do_publish(self, entries, event_name, msg):
+        print "---> %s" % entries
         defers = []
-        for s in self.routing.get(event_name):
-            if isinstance(s, defer.Deferred):
-                print "delayed..."
-                # re-schedule remote_publish when we'll got everything we need
-                s.addCallback(lambda _: self.remote_publish(event_name, msg))
-            else:
-                log.msg("publishing %s to %s" % (event_name, s), logLevel=logging.DEBUG)
+        for n in entries:
+            method = 'event'
+            err_back = self._dead_reference
+            args = (n.getNode(),)
+             
+            if isinstance(n, routing.RemoteRouteEntry):
+                method = 'publish'
+                err_back = lambda _: None
+                args = ()
+                
+            d = n.getNode().callRemote(method, event_name, msg).addErrback(err_back, *args)
             
-                method = 'event'
-                err_back = self._dead_reference
-                if isinstance(s, routing.RemoteRouteEntry):
-                    method = 'publish'
-                    err_back = lambda _: None
-                    
-                d = s.getNode().callRemote(method, event_name, msg).addErrback(err_back, s.getNode())
+            defers.append(d)
+            if msg._delivery_mode != 'all':
+                break
             
-                defers.append(d)
-
-                if msg._delivery_mode != 'all':
-                    break
-        
         if len(defers) > 1:
             return defer.DeferredList(defers)
         elif len(defers) == 1:
             return defers.pop()
         else:
             return
+        
+    def gotRemoteRoute(self, remote, eventUri, msg):
+        self.routing._add({'parsed_uri': eventUri, 'instance': remote})
+        
+        return remote.callRemote('publish', "%s@localhost/%s" % (eventUri.nodeName, eventUri.eventName), msg)
+        
+    def getRemote(self, furl, eventUri, msg):
+        if furl:
+            for f in furl:
+                print "Doing remote publishing to %s to %s" % (eventUri.eventName, f)
+                self.tub.getReference(f).addCallback(self.gotRemoteRoute, eventUri, msg)
+         
+    def remote_publish(self, event_name, msg):
+        log.msg("publishing %s(msg=%s)" % (event_name, msg), logLevel=logging.INFO)
+        
+        for d in self.routing.get(event_name):
+            d.addCallback(self._do_publish, event_name, msg)\
+                  .addErrback(self.routing.onFailure, routing.NoSuchEntry, self.getRemote, msg)
+                  
        
     def remote_unsubscribe(self, event_name, node, name):
         log.msg("unsubscribe for %s by %s" % (event_name, node), logLevel=logging.INFO)
@@ -137,7 +172,7 @@ class EventDispatcher(Referenceable, service.Service):
         if not self.heartbeat.has(node):
             #FIXME: workaround for missing monitor, foolscap does not pass ivars
             node.monitor = None
-            m = self.heartbeat.add(node).onOk(lambda _: None).onFail(self._dead_reference, node)
+            m = self.heartbeat.add(node).onOk(lambda _: None).onFail(self._dead_reference, event_name, node)
             
 
                 

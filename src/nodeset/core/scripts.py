@@ -42,7 +42,6 @@ def run_dispatcher():
     try:
         config.parseOptions()
 
-        #if not config['listen'].startswith('pb'):
         d = dispatcher.EventDispatcher(config['listen'])
         d.setServiceParent(application)
     except usage.error, ue:
@@ -52,7 +51,7 @@ def run_dispatcher():
         runApp(config, application)
     
 def run_node_sub():
-    n = node.Node(5334, name='simple-subscriber')
+    n = node.Node(5335, name='simple-subscriber1')
     application = ts.Application('nodeset-node-subscriber')
 
     

@@ -115,7 +115,7 @@ class Node(Referenceable, service.Service):
 
         if not self.dispatcher_url:
             self.dispatcher_url = self.config['dispatcher-url']
-        if not self.port:
+        if self.config.has_key('listen'):
             self.host, self.port = self.config['listen'].split(':')
         
         self.tub = Tub()
