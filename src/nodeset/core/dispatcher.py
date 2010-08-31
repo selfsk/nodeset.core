@@ -119,7 +119,7 @@ class EventDispatcher(Referenceable, service.Service):
         for n in entries:
             method = 'event'
             err_back = self._dead_reference
-            args = (n.getNode(),)
+            args = (None, n.getNode(),)
              
             if isinstance(n, routing.RemoteRouteEntry):
                 method = 'publish'

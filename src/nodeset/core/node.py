@@ -247,7 +247,7 @@ class Node(Referenceable, service.Service):
         """
         return self.onStream(data, formatter)
     
-    def remote_event(self, event, msg):
+    def remote_event(self, event, msg, bubble=True):
         """
         foolscap's method, will be called by EventDispatcher on event publishing. By default it calls onEvent(event),
         you can implement it in subclass to perform various events handling
@@ -255,9 +255,17 @@ class Node(Referenceable, service.Service):
         @type event: L{str}
         @param msg: NodeMessage instance
         @type msg: L{NodeMessage}
+        @param bubble: remote side can set to True to get exceptions from this node, otherwise suppress it
+        @type bubble: L{boolean}
         @return: None
         """
-        return self.onEvent(event, msg)
+        try:
+            return self.onEvent(event, msg)
+        except Exception, e:
+            if not bubble:
+                log.msg("error: %s" % e)
+            else:
+                raise e
  
 
     def remote_heartbeat(self):
