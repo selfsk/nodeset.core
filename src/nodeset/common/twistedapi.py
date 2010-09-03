@@ -14,6 +14,7 @@ from twisted.scripts._twistd_unix import ServerOptions, \
     
 from nodeset.core.config import Configurator
 from nodeset.common import log
+from nodeset.core import copyright
 
 class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
     """
@@ -66,6 +67,10 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
         
         # set some twisted option to default values
         self['no_save'] = True
+        
+    def opt_version(self):
+        print "nodeset.core version: %s" % copyright.version
+        super(NodeSetAppOptions, self).opt_version()
        
 class NodeSetApplicationRunner(_SomeApplicationRunner):
     """
