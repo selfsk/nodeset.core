@@ -6,6 +6,9 @@ from twisted.python import usage
 from nodeset.common.twistedapi import run, NodeSetAppOptions, runApp
 from nodeset.core import node, dispatcher
 
+from nodeset.core import web
+from twisted.web import static, server, script
+
 class DispatcherOptions(NodeSetAppOptions):
     
     optParameters = [
@@ -13,7 +16,17 @@ class DispatcherOptions(NodeSetAppOptions):
                      ['dht-nodes', None, None, 'known nodes addresses (ip:port,ip2:port)'],
                      ['listen', None, 'pbu://localhost:5333/dispatcher', 'dispatcher listen FURL']
                      ]
-  
+ 
+class WebBridgeOptions(usage.Options):
+    
+    optParameters = [
+                     ['path', None,'/var/www/rpy', '.rpy files path'],
+                     ['port', None, 8080, 'web listen port', int]
+                     ] 
+
+class WebNodeOptions(NodeSetAppOptions):
+    subCommands = [['web', None, WebBridgeOptions, 'web bridge options']]
+    
 def run_shell():
     from twisted.manhole.telnet import ShellFactory
     
@@ -69,10 +82,44 @@ def run_node_sub():
 def run_node_pub():
     n = node.Node(5335)
     application = ts.Application('nodeset-node-publisher')
-    n.start()
+    n.start().addCallback(lambda _: n.publish('simple_event', payload='helloworld'))
 
     
     n.setServiceParent(application)   
-    reactor.callLater(3, n.publish, 'simple_event', payload='hello world')
+
 
     return run(application)
+
+def run_web_node():
+    
+    config = WebNodeOptions()
+    application = ts.Application('nodeset-web-node')
+    #sc = ts.IServiceCollection(application)
+      
+    try:
+        config.parseOptions()
+
+        n = web.WebBridgeNode()
+        n.setServiceParent(application)
+     
+        n.start()
+        root = static.File(config.subOptions['path'])
+        root.ignoreExt(".rpy")
+        root.processors = {'.rpy': script.ResourceScript}
+        
+        site = web.NodeSetSite(root, n)
+
+        webservice = internet.TCPServer(config.subOptions['port'], site)
+        webservice.setServiceParent(application)
+        
+        #d = dispatcher.EventDispatcher(config['listen'])
+        #d.setServiceParent(application)
+    except usage.error, ue:
+        #print config
+        print ue
+    else:
+        runApp(config, application)
+    
+    #n.start()
+    #n.setServiceParent(Application)
+    

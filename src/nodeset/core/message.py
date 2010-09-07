@@ -5,7 +5,7 @@ from foolscap.api import Copyable, RemoteCopy
 
 import sys
 
-class Attribute:
+class Attribute(object):
     """
     Helper class to define Message attributes, to make easy for foolscap to build Copyable objects
     """
@@ -45,10 +45,22 @@ class Attribute:
     def __repr__(self):
         return repr(self.value)
     
+    def __getitem__(self, name):
+        return self.value[name]
+    
     def __str__(self):
         return str(self.value)
     
+    def getValue(self):
+        """
+        Return value of Attribute
+        """
+        return self.value
+    
 class _Message(Copyable, RemoteCopy):
+    """
+    Foolscap message description, we're trying to wrap any NodeSet message into this one
+    """
     typeToCopy = copytype = 'node-message-0xdeadbeaf'
     
     def __init__(self):
