@@ -22,7 +22,7 @@ class EventDispatcher(Referenceable, service.Service):
     on this dispatcher, too. Nodes are exchanging events through dispatcher.
     """
     def __init__(self, listen='pbu://localhost:5333/dispatcher'):
-        self.routing = routing.RoutingTable(self) 
+        self.routing = routing.RoutingTable() 
         self.tub = UnauthenticatedTub()
         
         host, port, refname = self._split(listen)

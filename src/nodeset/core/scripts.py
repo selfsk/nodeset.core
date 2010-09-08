@@ -12,7 +12,7 @@ from twisted.web import static, server, script
 class DispatcherOptions(NodeSetAppOptions):
     
     optParameters = [
-                     ['dht-port', None, 4000, 'DHT listen port', int],
+                     ['dht-port', None, None, 'DHT listen port', int],
                      ['dht-nodes', None, None, 'known nodes addresses (ip:port,ip2:port)'],
                      ['listen', None, 'pbu://localhost:5333/dispatcher', 'dispatcher listen FURL']
                      ]

@@ -213,7 +213,7 @@ class Node(Referenceable, service.Service):
             
         if self.dispatcher:
             d = self.dispatcher.callRemote('unsubscribe', name, self, self.name)
-            self.__subscribes.remove(name)
+            self.__subscriptions.remove(name)
         
             return d
         
