@@ -1,9 +1,14 @@
 from setuptools import setup, find_packages
+import os, sys
 
+if os.path.exists('src'):
+    sys.path.insert(0, '.')
+
+from nodeset.core import copyright
 
 setup(
     name = "nodeset",
-    version = "0.99.8",
+    version = copyright.version,
     packages = find_packages('src'),
     package_dir = {'': 'src'},
     author = 'Sergei Kononov',
