@@ -1,6 +1,7 @@
 from nodeset.core import node
 
 from twisted.web import server
+import uuid
 
 class WebBridgeNode(node.Node):
     """
@@ -8,18 +9,38 @@ class WebBridgeNode(node.Node):
     """
     
     events = {}
+
     def onEvent(self, event, msg):
-        #try:
-        m, args, kw = self.events[event]
-        m(msg, *args, **kw)
+        for item in self.events[event]:
+            subId = item[0]
+            m, args, kw = item[1]
+            
+            m(msg, subId, *args, **kw)
      
     def subscribe(self, event, cb, *args, **kwargs):
-        self.events[event] = (cb, args, kwargs)
-        super(WebBridgeNode, self).subscribe(event)
-               
-    def unsuscribe(self, event):
-        del self.events[event]
-        super(WebBridgeNode, self).unsubscribe(event)
+        subscriptionId = str(uuid.uuid4())
+        
+        if self.events.has_key(event):
+            self.events[event].append((subscriptionId,  (cb, args, kwargs)))
+        else:
+            self.events[event] = [(subscriptionId, (cb, args, kwargs))]
+            
+        if not self.issubscribed(event):
+            super(WebBridgeNode, self).subscribe(event)
+
+        return subscriptionId
+    
+    def unsubscribe(self, event, subscriptionId):
+        
+        for idx, item in enumerate(self.events[event]):
+            subId = item[0]
+            
+            if subId == subscriptionId:
+                t = self.events[event].pop(idx)
+                del t
+                
+        if len(self.events[event]) == 0:
+            super(WebBridgeNode, self).unsubscribe(event)
          
 class NodeSetSite(server.Site):
     """

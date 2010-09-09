@@ -217,6 +217,14 @@ class Node(Referenceable, service.Service):
         
             return d
         
+    def issubscribed(self, name):
+        """
+        Check does node already subscribed to event
+        @param name: event name
+        @return bool
+        """
+        return name in self.__subscriptions
+    
     def onEvent(self, event, msg):
         """
         default callback for event
