@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import os, sys
 
 if os.path.exists('src'):
-    sys.path.insert(0, '.')
+    sys.path.insert(0, 'src')
 
 from nodeset.core import copyright
 
