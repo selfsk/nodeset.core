@@ -94,7 +94,7 @@ class Node(Referenceable, service.Service):
         
         self.dispatcher_url = dispatcher_url
         self.host = host or 'localhost'
-        self.port = int(port)
+        self.port = port
         
         self.dispatcher = None
 

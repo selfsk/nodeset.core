@@ -56,7 +56,7 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
                       "Name of the profiler to use (%s)." %
                       ", ".join(app.AppProfiler.profilers)],
                      ['dispatcher-url', None, 'pbu://localhost:5333/dispatcher', "Dispatcher's URL"],
-                     ['listen', None, 'localhost:port',  "Node's listen address (i.e. host:port)"]
+                     ['listen', None, 'localhost:5444',  "Node's listen address (i.e. host:port)"]
                      ]
 
 
