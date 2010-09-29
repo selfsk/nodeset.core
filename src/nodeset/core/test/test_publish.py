@@ -9,9 +9,13 @@ from common import NodeTestCase
        
 class PublishSubscribeTestCase(NodeTestCase):
     
-    def checkReceivedData(self, data, node, event_name, message):
-        self.assertEqual(node.event, event_name)
-        self.assertEqual(node.msg, message)
+    def checkReceivedData(self, data, w_event, w_attr, w_attr_val):
+        event, msg = data
+        v = getattr(msg, w_attr)
+        
+        self.assertTrue(v != None)
+        self.assertEqual(event, w_event)
+        self.assertEqual(v, w_attr_val)
         
     def testSubscribe(self):
         # on setUp node do subscribe('event_name')
@@ -20,9 +24,11 @@ class PublishSubscribeTestCase(NodeTestCase):
         
     def testPublish(self):
         log.msg("dispatcher %s" % self.node.dispatcher)
-        m = self.node.builder.createMessage(self.node.message, payload='test-publish')
-        d = self.node.publish('event_name', payload='test-publish')
-        d.addCallback(self.checkReceivedData, self.node, 'event_name', m)
+
+        d = self.node.dqueue.get()
+        d.addCallback(self.checkReceivedData, 'event_name', 'payload', 'test-publish')
+        
+        self.node.publish('event_name', payload='test-publish')
         
         return d
     
@@ -31,10 +37,11 @@ class PublishSubscribeTestCase(NodeTestCase):
             
             def __init__(self):
                 message.Attribute('custom_field')
-                
-        m = self.node.builder.createMessage(TMsg, custom_field='custom')
-        d = self.node.publish('event_name', TMsg, custom_field='custom')
-        d.addCallback(self.checkReceivedData, self.node, 'event_name', m)
+        
+        d = self.node.dqueue.get()        
+        self.node.publish('event_name', TMsg, custom_field='custom')
+        
+        d.addCallback(self.checkReceivedData, 'event_name', 'custom_field', 'custom')
         
         return d
 

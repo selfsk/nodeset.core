@@ -58,12 +58,12 @@ class EventDispatcher(Referenceable, service.Service):
             def publishToDHT(eventDict, listen_url):
                 dht_key = "%s@%s" % (eventDict['parsed_uri'].eventName, eventDict['parsed_uri'].nodeName)
                  
-                print "publishing to DHT key(%s), value(%s)" % (dht_key, listen_url)
+                log.msg("publishing to DHT key(%s), value(%s)" % (dht_key, listen_url))
                 self.dht.publishData(dht_key, listen_url)
               
             def removeFromDHT(eventDict, listen_url):
                 dht_key = "%s@%s" % (eventDict['parsed_uri'].eventName, eventDict['parsed_uri'].nodeName)
-                print "Removing from DHT key(%s),value(%s)" % (dht_key, listen_url)
+                log.msg("Removing from DHT key(%s),value(%s)" % (dht_key, listen_url))
                 
                 self.dht.removeData(dht_key)
                 
@@ -114,7 +114,7 @@ class EventDispatcher(Referenceable, service.Service):
         print "<-> %s" % data
         
     def _do_publish(self, entries, event_name, msg):
-        print "---> %s" % entries
+        #print "---> %s" % entries
         defers = []
         for n in entries:
             method = 'event'
@@ -147,7 +147,7 @@ class EventDispatcher(Referenceable, service.Service):
     def getRemote(self, furl, eventUri, msg):
         if furl:
             for f in furl:
-                print "Doing remote publishing to %s to %s" % (eventUri.eventName, f)
+                log.msg("Doing remote publishing to %s to %s" % (eventUri.eventName, f))
                 self.tub.getReference(f).addCallback(self.gotRemoteRoute, eventUri, msg)
          
     def remote_publish(self, event_name, msg):

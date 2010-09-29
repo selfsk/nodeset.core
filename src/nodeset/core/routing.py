@@ -194,7 +194,7 @@ class RoutingTable:
         
         if self.dht:
             dht_key = "%s@%s" % (eventUri.eventName, eventUri.nodeName)
-            print "looking in DHT key(%s)" % dht_key
+            log.msg("looking in DHT key(%s)" % dht_key)
             return self.dht.searchData(dht_key).addCallback(self.dht.onData, eventUri, cb, *args)
         
         return []

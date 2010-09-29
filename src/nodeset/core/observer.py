@@ -1,6 +1,9 @@
 from twisted.internet import defer
 import uuid
 
+from nodeset.common import log
+ 
+
 class Observer(object):
     
     def __init__(self, callable, *args, **kwargs):
@@ -8,7 +11,7 @@ class Observer(object):
         self.args = args
         self.kwargs = kwargs
         
-        print "-- %s, %s" % (self.args, self.kwargs)
+        #print "-- %s, %s" % (self.args, self.kwargs)
         self.assertfunc = lambda x: True
         
     def setAssert(self, assertfunc):
@@ -26,7 +29,7 @@ class ObserverCarousel(object):
     def twist(self, observers, eventDict): 
         defers = []
 
-        print "twist carousel %s, %s" % (observers, eventDict)
+        log.msg("twist carousel %s, %s" % (observers, eventDict))
                 
         for i in observers:
             defers.append(defer.maybeDeferred(i.run, eventDict))
