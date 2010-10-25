@@ -4,6 +4,7 @@ Base classes for Messages, provides NodeMessage (base class for message), and At
 from foolscap.api import Copyable, RemoteCopy
 
 import sys
+import simplejson
 
 class Attribute(object):
     """
@@ -133,5 +134,22 @@ class NodeMessage:
         else:
             raise KeyError("setattr() - Class %s has no property %s" % (self, name))    
         
+    
+    def toJson(self):
+        j_dict = {}
+        
+        for k,v in self.attrs.items():
+            j_dict[k] = v.getValue()
+            
+        return simplejson.dumps(j_dict)
+    
+    def fromJson(self, json):
+        j_dict = simplejson.loads(json)
+        
+        for k, v in j_dict.items():
+            Attribute(k, v)
+            
+            #self.attrs[k] = v
+            
             
     
