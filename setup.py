@@ -29,7 +29,8 @@ setup(
                                         'nodeset-node-publish = nodeset.core.scripts:run_node_pub',
                                         'nodeset-monitor = nodeset.core.stats.scripts:main',
                                         'nodeset-shell = nodeset.core.scripts:run_shell',
-                                        'nodeset-web = nodeset.core.scripts:run_web_node']},
+                                        'nodeset-web = nodeset.core.scripts:run_web_node',
+                                        'nodeset-xmpp = nodeset.pubsub.scripts:run_sub']},
     
     # metadata for upload to PyPI
     description = "NodeSet framework",
