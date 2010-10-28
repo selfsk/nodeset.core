@@ -4,7 +4,7 @@ from twisted.internet import reactor
 
 from nodeset.common.twistedapi import run, NodeSetAppOptions, runApp
 
-from nodeset.pubsub.agent import XmppBot
+from nodeset.core.pubsub.agent import XmppAgent
 
 class XmppOptions(usage.Options):
     
@@ -35,7 +35,7 @@ def run_sub():
     try:
         config.parseOptions()
 
-        bot = XmppBot(config.subOptions['server'], config.subOptions['jid'], config.subOptions['password'])
+        bot = XmppAgent(config.subOptions['server'], config.subOptions['jid'], config.subOptions['password'])
         
         bot.setServiceParent(application)
 

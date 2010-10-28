@@ -11,7 +11,7 @@ setup(
     version = copyright.version,
     packages = find_packages('src'),
     package_dir = {'': 'src'},
-    author = 'Sergei Kononov',
+    author = 'Cloudment Team',
     author_email = 'self.sik@gmail.com',
     url = 'http://github.com/selfsk/nodeset.core',
     
@@ -30,7 +30,7 @@ setup(
                                         'nodeset-monitor = nodeset.core.stats.scripts:main',
                                         'nodeset-shell = nodeset.core.scripts:run_shell',
                                         'nodeset-web = nodeset.core.scripts:run_web_node',
-                                        'nodeset-xmpp = nodeset.pubsub.scripts:run_sub']},
+                                        'nodeset-xmpp = nodeset.core.pubsub.scripts:run_sub']},
     
     # metadata for upload to PyPI
     description = "NodeSet framework",
