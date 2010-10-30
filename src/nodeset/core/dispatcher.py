@@ -73,14 +73,17 @@ class EventDispatcher(Referenceable, service.Service):
                     #body = item.children[0]
                     json = simplejson.loads(item.body.children[0])
                     
-                    log.msg("Event json %s" % json)
-                    _msg = message._Message()
-                    _msg.fromJson(json['msg'])
+                    if json['host'] ==  jidname:
+                        log.msg("Event json %s" % json)
+                        _msg = message._Message()
+                        _msg.fromJson(json['msg'])
                     
-                    print _msg.attrs
-                    eventURI = '%s@localhost/%s' % (json['node'], json['event_name'])
+                        print _msg.attrs
+                        eventURI = '%s@localhost/%s' % (json['node'], json['event_name'])
                     
-                    self.remote_publish(eventURI, _msg)
+                        self.remote_publish(eventURI, _msg)
+                    else:
+                        log.msg("Event for another node %s" % json)
                     
             xmpp.gotEvent = on_event
             
@@ -102,7 +105,7 @@ class EventDispatcher(Referenceable, service.Service):
                 uri = eventDict['parsed_uri']
                 msg = eventDict['args'][0]
                 
-                payload = {'event_name': uri.eventName, 'node': uri.nodeName}
+                payload = {'event_name': uri.eventName, 'node': uri.nodeName, 'host': uri.hostName}
                 payload['msg'] = msg.toJson()
                 
                 log.msg("publish fail %s, %s, %s" % (eventDict, xmpp, payload))
