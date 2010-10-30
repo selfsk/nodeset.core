@@ -1,6 +1,6 @@
 from twisted.words.protocols.jabber import client, jid
 from twisted.words.protocols.jabber import xmlstream
-from twisted.words.xish import domish
+from twisted.words.xish import domish, xpath
 
 from twisted.application import service, internet
 
@@ -8,7 +8,11 @@ from twisted.internet import defer
 #from twisted.python import log
 from nodeset.common.twistedapi import log
 
-from nodeset.core.pubsub.common import XmppInstance, IQMessage, SubscribeMessage, PublishMessage, UnsubscribeMessage, SubscriptionsMessage
+from nodeset.core.pubsub.common import * 
+#import XmppInstance, IQMessage, SubscribeMessage, \
+#                            PublishMessage, UnsubscribeMessage, SubscriptionsMessage, \
+#                            Message
+                            
 #from kiss.trmng import TransactionClient, XmlStreamDebug
 
 #log.startLogging(sys.stdout)
@@ -33,25 +37,32 @@ class XmlStreamJabber(xmlstream.XmlStream):
         """
         Do default xmlstream.send, but put obj[id] to _pending response dict
         """
-        xmlstream.XmlStream.send(self, obj)
-
+        
+        d = None
         if isinstance(obj, IQMessage):        
             try:
+                
+                log.msg("Sending %s" % obj['id'])
                 d = defer.Deferred()
                 self._pending[obj['id']] = d
-            
-                return d
+                
             except KeyError:
                 pass
+            
+        xmlstream.XmlStream.send(self, obj)
         
+
+        return d
+    
 class XmppAgent(XmppInstance, service.Service):
 
-    def __init__(self, host, jid_str, pswd):
+    def __init__(self, host, jid_str, pswd, port=5222):
         XmppInstance.__init__(self)
         
         self.jid = jid.JID(jid_str)
         self.pwd = pswd
         self.host = host
+        self.port = port
         
         self.service = None
         self.xmlstream = None
@@ -68,7 +79,7 @@ class XmppAgent(XmppInstance, service.Service):
         self.addObserver('/message', self.gotMessage)
         self.addObserver('/iq', self.gotIq)
 
-        self.service = internet.TCPClient(self.host, 5222, self.factory)
+        self.service = internet.TCPClient(self.host, self.port, self.factory)
         self.service.startService()
         
     
@@ -127,21 +138,66 @@ class XmppAgent(XmppInstance, service.Service):
         log.msg("Retriving subscriptions to node %s" % subs.toXml())
         
         self.xmlstream.send(subs)
+     
+    def nodes(self, jid_to):
+        assert(self.xmlstream != None)
+        
+        iqnode = IQMessage(jid_to, self.jid.userhost(), 'get', ns=None)
+        iqnode.addChild(Message('query', ns='http://jabber.org/protocol/disco#items'))
+        
+        log.msg("Requesting available nodes %s" % iqnode.toXml())
+        
+        return self.xmlstream.send(iqnode)#.addCallback(self._dmsg).addErrback(self._err)
+        
+    def hasNode(self, pubsub, node):
+        
+        return self.nodes(pubsub).addCallback(self._findNode, node)
+        
+    def _findNode(self, message, node):
+        query = xpath.XPathQuery('/iq/query/item[@node="%s"]' % node)
+        
+        items = query.queryForNodes(message)
+        
+        if not items:
+            raise Exception("node %s, not found" % node)
+            
+    
+    def createNode(self, pubsub, node):
+        assert(self.xmlstream != None)
+        
+        create = CreateNodeMessage(pubsub, self.jid.userhost(), node)
+        
+        log.msg("Creating node %s" % create.toXml())
+         
+        return self.xmlstream.send(create)
+        
+    def gotEvent(self, message):
+        log.msg("Incoming message %s" % message.toXml())
         
     def gotMessage(self, stream, message):
         log.msg("Got XMPP message %s" % message.toXml())
         
         try:
             #TODO: do initial parsing, on <error> run errback
-            stream._pending[message['id']].callback((stream, message))
+            d = stream._pending[message['id']]
+            d.callback(message)
+            
+            del stream._pending[message['id']]
         except KeyError:
-            pass
+            # looks like it's event message from XMPP
+            self.gotEvent(message)
             
     def gotIq(self, stream, message):
+            
         log.msg("Got IQ message - %s" % message.toXml())
+        iq_id = message.getAttribute('id')
         
+        log.msg("_pending %s" % stream._pending)
         try:
-            stream._pending[message['id']].callback((stream, message))
+            d = stream._pending[iq_id]
+            d.callback(message)#.addErrback(_errIq)
+            
+            del stream._pending[iq_id]
         except KeyError:
             pass
         
