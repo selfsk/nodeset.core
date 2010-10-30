@@ -96,7 +96,7 @@ def run_node_sub():
 def run_node_pub():
     n = node.Node(5335)
     application = ts.Application('nodeset-node-publisher')
-    n.start().addCallback(lambda _: n.publish('groupname2/simple_event', payload='helloworld'))
+    n.start().addCallback(lambda _: n.publish('simple_event', payload='helloworld_xyz'))
 
     
     n.setServiceParent(application)   

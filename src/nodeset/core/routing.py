@@ -191,7 +191,11 @@ class RoutingTable:
         except klass, e:
             eventUri = e.eventUri
         
-            return self.carousel.twist(self.observers['fail'], {'parsed_uri': eventUri,
+            print eventUri.hostName
+            
+            # if it's not for localhost, twist the carousel
+            if eventUri.hostName != 'localhost':
+                return self.carousel.twist(self.observers['fail'], {'parsed_uri': eventUri,
                                                                 'args':  args})
     
     #    if self.dht:

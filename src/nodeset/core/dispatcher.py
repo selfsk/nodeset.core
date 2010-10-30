@@ -175,17 +175,6 @@ class EventDispatcher(Referenceable, service.Service):
             return defers.pop()
         else:
             return
-        
-    def gotRemoteRoute(self, remote, eventUri, msg):
-        self.routing._add({'parsed_uri': eventUri, 'instance': remote})
-        
-        return remote.callRemote('publish', "%s@localhost/%s" % (eventUri.nodeName, eventUri.eventName), msg)
-        
-    def getRemote(self, furl, eventUri, msg):
-        if furl:
-            for f in furl:
-                log.msg("Doing remote publishing to %s to %s" % (eventUri.eventName, f))
-                self.tub.getReference(f).addCallback(self.gotRemoteRoute, eventUri, msg)
          
     def remote_publish(self, event_name, msg):
         log.msg("publishing %s(msg=%s)" % (event_name, msg), logLevel=logging.INFO)

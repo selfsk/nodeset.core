@@ -181,6 +181,7 @@ class XmppAgent(XmppInstance, service.Service):
         configure = ConfigureMessage()
         configure.addOption('pubsub#persist_items', 0)
         configure.addOption('pubsub#publish_model', 'open')
+        configure.addOption('pubsub#send_last_published_item', 'never')
         return self.createNode(pubsub, node, configure)
     
     def getEventItems(self, message):
