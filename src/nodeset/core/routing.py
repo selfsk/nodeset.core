@@ -102,7 +102,7 @@ class RoutingTable:
         self.observers = {'add': [Observer(self._add)],
                           'remove': [Observer(self._remove)],
                           'get': [Observer(self._get)],
-                          'fail': [lambda _: None]}
+                          'fail': [Observer(lambda _: None)]}
      
         self.carousel = ObserverCarousel()
         
@@ -191,7 +191,8 @@ class RoutingTable:
         except klass, e:
             eventUri = e.eventUri
         
-            return self.carousel.twist(self.observers['fail'], {'uri': EventURI(eventUri)}, *args)
+            return self.carousel.twist(self.observers['fail'], {'parsed_uri': eventUri,
+                                                                'args':  args})
     
     #    if self.dht:
     #        dht_key = "%s@%s" % (eventUri.eventName, eventUri.nodeName)

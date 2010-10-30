@@ -161,12 +161,11 @@ class PublishMessage(PubSubMessage):
             
     def addPayload(self, payload):
         item = Message('item', None)
-        body = Message('body', None)
+        body = Message('body', None, id=False)
         body.addContent(payload)
         
         item.addContent(body)
-        
-        item['id'] = str(uuid4())
+
         self.pub.addChild(item)
         
 class SubscribeMessage(PubSubMessage):
@@ -200,11 +199,38 @@ class CreateNodeMessage(PubSubMessage):
     def __init__(self, jid_to, jid_from, node):
         PubSubMessage.__init__(self, jid_to, jid_from, 'set')
         
-        create = Message('create', None, id=False)
-        create['node'] = node
+        self.create = Message('create', None, id=False)
+        self.create['node'] = node
         
-        self.pubsub.addChild(create)
+        self.pubsub.addChild(self.create)
+
+    def addConfigure(self, configure):
+        self.pubsub.addChild(configure)
         
+class ConfigureMessage(Message):
+    
+    def __init__(self):
+        Message.__init__(self, 'configure', ns=None, id=False)
+        
+        #self['type'] = 'submit'
+        
+        self.x = self.addChild(Message('x', ns='jabber:x:data', id=False))
+        self.x['type'] = 'submit'
+        
+        field = self.x.addChild(Message('field', None, id=False))
+        field['var'] = 'FORM_TYPE'
+        field['type'] = 'hidden'
+        
+        value = field.addChild(Message('value', None, id=False))
+        value.addContent('http://jabber.org/protocol/pubsub#node_config')
+        
+    def addOption(self, var, value):
+        option = self.x.addChild(Message('field', None, id=False))
+        option['var'] = var
+        
+        v2 = option.addChild(Message('value', None, id=False))
+        v2.addContent(str(value))
+    
 class DeleteNodeMessage(PubSubMessage):
     
     def __init__(self, jid_to, jid_from, node):

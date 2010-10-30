@@ -8,9 +8,9 @@ from twisted.application import service
 from twisted.internet import defer
 
 import logging
-import hashlib
+import simplejson
 
-from nodeset.core import routing, heartbeat, config
+from nodeset.core import routing, heartbeat, config, message
 from nodeset.common import log
 
 from nodeset.core.pubsub import agent
@@ -66,22 +66,50 @@ class EventDispatcher(Referenceable, service.Service):
             #xmpp.setServiceParent(self)
             xmpp.startService()
             
+            def on_event(msg):
+                log.msg("on_event")
+                items = xmpp.getEventItems(msg)
+                for item in items:
+                    #body = item.children[0]
+                    json = simplejson.loads(item.body.children[0])
+                    
+                    log.msg("Event json %s" % json)
+                    _msg = message._Message()
+                    _msg.fromJson(json['msg'])
+                    
+                    print _msg.attrs
+                    eventURI = '%s@localhost/%s' % (json['node'], json['event_name'])
+                    
+                    self.remote_publish(eventURI, _msg)
+                    
+            xmpp.gotEvent = on_event
+            
             def subscription_add(eventDict, xmpp):
                 uri = eventDict['parsed_uri']
                 
                 xmpp.hasNode(xmpp_pubsub, uri.eventName)\
                     .addErrback(lambda _: 
-                                    xmpp.createNode(xmpp_pubsub, uri.eventName)\
+                                    xmpp.createNodeAndConfigure(xmpp_pubsub, uri.eventName))\
                                     .addCallback(lambda _: xmpp.subscribe(xmpp_pubsub, uri.eventName))
-                                                                                  )\
+                                                                                  
                 
                 #xmpp.subscribe(xmpp_pubsub, uri.getEventName)
                 
             #def subscription_drop(eventDict, xmpp):
             #    pass
 
-            def publish_fail(eventDict, msg, xmpp):
-                log.msg("publish fail %s, %s" % (msg, xmpp))
+            def publish_fail(eventDict, xmpp):
+                uri = eventDict['parsed_uri']
+                msg = eventDict['args'][0]
+                
+                payload = {'event_name': uri.eventName, 'node': uri.nodeName}
+                payload['msg'] = msg.toJson()
+                
+                log.msg("publish fail %s, %s, %s" % (eventDict, xmpp, payload))
+                
+                xmpp.publish(xmpp_pubsub, xmpp.jid.userhost(), uri.eventName, simplejson.dumps(payload))
+                
+            
             
             self.routing.addObserver('add', subscription_add, xmpp)
             #self.routing.addObserver('remove', subscription_drop, xmpp)
@@ -134,8 +162,8 @@ class EventDispatcher(Referenceable, service.Service):
                 args = ()
              
             #TODO: implement call() in Node
-            d = n.getNode().call(method, event_name, msg).addErrback(err_back, *args)   
-            #d = n.getNode().callRemote(method, event_name, msg).addErrback(err_back, *args)
+            #d = n.getNode().call(method, event_name, msg).addErrback(err_back, *args)   
+            d = n.getNode().callRemote(method, event_name, msg).addErrback(err_back, *args)
             
             defers.append(d)
             if msg._delivery_mode != 'all':

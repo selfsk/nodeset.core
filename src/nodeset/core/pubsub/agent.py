@@ -162,15 +162,34 @@ class XmppAgent(XmppInstance, service.Service):
             raise Exception("node %s, not found" % node)
             
     
-    def createNode(self, pubsub, node):
+    def createNode(self, pubsub, node, configure=None):
         assert(self.xmlstream != None)
         
         create = CreateNodeMessage(pubsub, self.jid.userhost(), node)
         
+        if configure:
+            create.pubsub.addChild(configure)
+            
         log.msg("Creating node %s" % create.toXml())
          
         return self.xmlstream.send(create)
+     
+    def createNodeAndConfigure(self, pubsub, node):
+        """
+        Defautl configuration for node
+        """
+        configure = ConfigureMessage()
+        configure.addOption('pubsub#persist_items', 0)
+        configure.addOption('pubsub#publish_model', 'open')
+        return self.createNode(pubsub, node, configure)
+    
+    def getEventItems(self, message):
+        query = xpath.XPathQuery('/message/event/items/item')
         
+        items = query.queryForNodes(message)
+        
+        return items or []
+       
     def gotEvent(self, message):
         log.msg("Incoming message %s" % message.toXml())
         
