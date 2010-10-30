@@ -20,8 +20,7 @@ class XmppOptions(usage.Options):
     
     optFlags = [
                 ['subscriptions', None, 'subscription list'],
-                ['unsubscribe', None, 'unsubscribe by node'],
-                ['nodes', None, 'nodes list']
+                ['unsubscribe', None, 'unsubscribe by node']
                 ]
 
 class XmppAppOptions(NodeSetAppOptions):
@@ -49,8 +48,6 @@ def run_sub():
             reactor.callLater(3, bot.subscriptions, 'pubsub.su-msk.dyndns.org', config.subOptions['node'])
         elif config.subOptions['unsubscribe']:
             reactor.callLater(3, bot.unsubscribe, 'pubsub.su-msk.dyndns.org', config.subOptions['node'], config.subOptions['subId'])
-        elif config.subOptions['nodes']:
-            reactor.callLater(3, bot.hasNode, 'pubsub.su-msk.dyndns.org', config.subOptions['node'])
         else:
             
             reactor.callLater(3, bot.subscribe, 'pubsub.su-msk.dyndns.org', config.subOptions['node'])

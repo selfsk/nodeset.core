@@ -95,14 +95,15 @@ class RoutingTable:
     @ivar entries: dict of RouteEntry instances 'event_name' -> [RouteEntry, RouteEntry,...]
     """
     
-    def __init__(self):
+    def __init__(self, dht = None):
         self.entries = {}
         self.factory = RouteEntryFactory()
        
+        self.dht = dht
+        
         self.observers = {'add': [Observer(self._add)],
                           'remove': [Observer(self._remove)],
-                          'get': [Observer(self._get)],
-                          'fail': [lambda _: None]}
+                          'get': [Observer(self._get)]}
      
         self.carousel = ObserverCarousel()
         
@@ -182,7 +183,7 @@ class RoutingTable:
         return self.carousel.twist(self.observers['get'], d)
 
 
-    def onFailure(self, fail, klass, *args):
+    def onFailure(self, fail, klass, cb, *args):
         fail.trap(klass)
         
         # don't know how to get exception instance from L{Failure}
@@ -191,12 +192,10 @@ class RoutingTable:
         except klass, e:
             eventUri = e.eventUri
         
-            return self.carousel.twist(self.observers['fail'], {'uri': EventURI(eventUri)}, *args)
-    
-    #    if self.dht:
-    #        dht_key = "%s@%s" % (eventUri.eventName, eventUri.nodeName)
-    #        log.msg("looking in DHT key(%s)" % dht_key)
-    #        return self.dht.searchData(dht_key).addCallback(self.dht.onData, eventUri, cb, *args)
+        if self.dht:
+            dht_key = "%s@%s" % (eventUri.eventName, eventUri.nodeName)
+            log.msg("looking in DHT key(%s)" % dht_key)
+            return self.dht.searchData(dht_key).addCallback(self.dht.onData, eventUri, cb, *args)
         
         return []
         
@@ -277,12 +276,6 @@ class RouteEntry:
     weight = 1
     
     def __init__(self, host, event_name, node, node_name):
-        """
-        @param host: host part of eventURI
-        @param event_name: event name
-        @param node: foolscap's node (L{RemoteReference})
-        @param node_name: node name
-        """
         self.name = event_name
         self.node = node
         self.host = host
@@ -319,7 +312,6 @@ class RemoteRouteEntry(RouteEntry):
     """
     pass
 
-    
 class LocalRouteEntry(RouteEntry):
     """
     Routing entries for local Nodes

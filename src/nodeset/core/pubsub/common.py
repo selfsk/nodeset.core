@@ -1,4 +1,4 @@
-from twisted.words.xish import domish
+from twisted.words.xish import domish, xmlstream
 from uuid import uuid4
 
 import types
@@ -215,5 +215,33 @@ class DeleteNodeMessage(PubSubMessage):
         
         self.addChild(delete)
         
+class TransactionMessage(Message):
+    
+    def __init__(self):
+        Message.__init__(self, 'transaction')
+        self.fields = {
+                         'type': XmlHelper(self.addElement('type')),
+                         'amount': XmlHelper(self.addElement('amount'), outf=int),
+                         'ts': XmlHelper(self.addElement('ts')), 
+                         'currency': XmlHelper(self.addElement('currency')),
+                         'desc': XmlHelper(self.addElement('desc')),
+                         'direction': XmlHelper(self.addElement('direction')),
+                         'from': XmlHelper(self.addElement('from'))}
+
+    
+        
+class AcknowledgeMessage(Message):
+    
+    def __init__(self):
+        Message.__init__(self, 'acknowledge')
+        self.status = XmlHelper(self.addElement('status'))
+        
+    def failure(self, msg):
+        t = self.status.set(domish.Element(('', 'failure')))
+        t.set(msg)
+        
+    def success(self, msg):
+        t = self.status.set(domish.Element(('', 'success')))
+        t.set(msg)
 
     
