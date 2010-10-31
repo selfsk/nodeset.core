@@ -84,8 +84,6 @@ class _Message(Copyable, RemoteCopy):
         for k,v in self.attrs.items():
             d[k] = v.getValue()
             
-        print d
-        
         return simplejson.dumps(d)
          
     def fromJson(self, json):

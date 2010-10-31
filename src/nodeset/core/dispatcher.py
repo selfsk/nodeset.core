@@ -58,11 +58,12 @@ class EventDispatcher(Referenceable, service.Service):
             xmpp_pubsub = config.Configurator.subOptions['pubsub']
         
             xmpp_host =  xmpp_fqdn or xmpp_srv
-                
+            xmpp_port = config.Configurator.subOptions['port']
+               
             jid = "%s@%s/nodeset" % (jidname, xmpp_host)
 
             log.msg("XMPP support enabled, jid(%s)" % jid)            
-            xmpp = agent.XmppAgent(xmpp_srv, jid, pwd)
+            xmpp = agent.XmppAgent(xmpp_srv, jid, pwd, xmpp_port)
             #xmpp.setServiceParent(self)
             xmpp.startService()
             
