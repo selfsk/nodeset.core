@@ -115,7 +115,7 @@ class Node(Referenceable, service.Service):
 
         if not self.dispatcher_url:
             self.dispatcher_url = self.config['dispatcher-url']
-        if self.config.has_key('listen'):
+        if self.config.has_key('listen') and not self.port:
             self.host, self.port = self.config['listen'].split(':')
         
         self.tub = Tub()
@@ -430,19 +430,19 @@ class CollectionAdapter:
             if event in self.collection.events:
                 return self.collection.remote_event(event, m)
             else:
-                return self.collection.dispatcher.callRemote('publish', self.collection, event, m)
+                return self.collection.dispatcher.callRemote('publish', event, m)
         
     def subscribe(self, name):
         if self.collection.dispatcher:
             # if we already subscribed to this event, don't send callRemote again
             if self.collection.addEvent(name, self.original) == 1:
-                self.collection.dispatcher.callRemote('subscribe', name, self.collection)
+                self.collection.dispatcher.callRemote('subscribe', name, self.collection, self.original.name)
         
     def unsubscribe(self, name):
         if self.collection.dispatcher:
             # if there are no nodes awaiting this event, unsubscribe multi node itself
             if not self.collection.removeEvent(name, self.original) == 0:
-                self.collection.dispatcher.callRemote('unsubscribe', name, self.collection)
+                self.collection.dispatcher.callRemote('unsubscribe', name, self.collection, self.original.name)
 
 # adapt Node to INodeCollection interface with CollectionAdapter factory
 components.registerAdapter(CollectionAdapter, Node, interfaces.INodeCollection)

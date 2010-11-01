@@ -10,9 +10,9 @@ by dispatcher, the special unix process (also based on foolscap RPC).
 1. EventDispatcher - runs on its own, just listen for incoming foolscap RPC calls, and trace which nodes are available,
     and its health.
 2. Node - Each Node can act as publisher, as well as subscribers. 
- 2.1 StreamNode - special node for streaming. Streaming performed without dispatcher, to avoid performance penalty.
+ 2.1 NodeCollection - group nodes under one listen port
 
-* Goals
+* Features
  - Distributed (each host has only one dispatcher, but many nodes. Events can be delivered between hosts)
  - Stateless (any node doesn't rely to dispatcher, if dispatcher will die, it does not affect nodes, as well as
      death of any nodes, does not affect other nodes and dispatcher)
@@ -25,11 +25,8 @@ python setup.py install (or develop for development)
 * Examples
 
 There are few examples of NodeSet framework usage:
- * mnode.py - example of NodeCollection, as well as Node usage. Subscription example
- * mnode_publish.py - example of publishing
- * stream-node.py - example of StreamNode usage
- * performance1.py - to test performance of message publishing/subscription, 
-      also has an example of NodeSetAppOptions usage
+ * examples/node.py - example of NodeCollection, as well as Node usage. Subscription example
+ * examples/mnode_publish.py - example of publishing
 
 To run any of example, first you must run dispatcher:
  - nodeset-dispatcher [options]
@@ -38,10 +35,6 @@ To run any of example, first you must run dispatcher:
   - python mnode.py [options]
   - python mnode_publish.py [options]
  
- * StreamNode usage example
-  - python stream-node.py [options]
-
-
 Options for call is similar to twistd tool in twisted framework, base code was taken from twisted, just use --help to
 find out available options.
 

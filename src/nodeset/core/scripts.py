@@ -9,14 +9,43 @@ from nodeset.core import node, dispatcher
 from nodeset.core import web
 from twisted.web import static, server, script
 
-class DispatcherOptions(NodeSetAppOptions):
+class PubSubOptions(usage.Options):
+    optParameters = [
+                     ['event', None, 'simple_event', 'eventURI'],
+                     ['payload', None, None, 'event payload (for publishing)']
+                     ]
+    
+    
+class ExampleNodeOptions(NodeSetAppOptions):
+    
+    subCommands = [
+                   ['subscriber', None, PubSubOptions, 'subscriber options'],
+                   ['publisher', None, PubSubOptions, 'publisher options']
+                   ]
+    
+class DispatcherXmppOptions(usage.Options):
     
     optParameters = [
-                     ['dht-port', None, None, 'DHT listen port', int],
-                     ['dht-nodes', None, None, 'known nodes addresses (ip:port,ip2:port)'],
-                     ['listen', None, 'pbu://localhost:5333/dispatcher', 'dispatcher listen FURL']
+                     ['jidname', None, None, 'host name or any name suitable for JID <user> part'],
+                     ['passwd', None, None, 'password'],
+                     ['server', None, None, 'XMPP server address'],
+                     ['fqdn', None, None, 'XMPP host part, default xmpp-server value'],
+                     ['pubsub', None, None, 'pubsub service name'],
+                     ['port', None, 5222, "XMPP server's port"]
+                     ] 
+    
+class DispatcherOptions(NodeSetAppOptions):
+    
+    subCommands = [
+                    ['xmpp', None, DispatcherXmppOptions, 'xmpp pubsub, required for inter-host communication']
+                    ]
+    
+    optParameters = [
+                     ['listen', None, 'pbu://localhost:5333/dispatcher', 'dispatcher listen FURL'],
+                  
                      ]
- 
+
+
 class WebBridgeOptions(usage.Options):
     
     optParameters = [
@@ -62,33 +91,36 @@ def run_dispatcher():
         print ue
     else:
         runApp(config, application)
-    
-def run_node_sub():
-    n = node.Node(5335, name='simple-subscriber1')
-    application = ts.Application('nodeset-node-subscriber')
 
+
+   
+def run_example_node():
     
-    def _print(e, m):
-        print m
+    application = ts.Application('nodeset-node')
+    config = ExampleNodeOptions()
+    
+    try:
+        config.parseOptions()
         
-    n.onEvent = _print
-    
-    n.start()
-    reactor.callLater(1, n.subscribe, '%s@%s/simple_event' % (n.name, n.host))
-    n.setServiceParent(application)
-    
-    return run(application)
-
-def run_node_pub():
-    n = node.Node(5335)
-    application = ts.Application('nodeset-node-publisher')
-    n.start().addCallback(lambda _: n.publish('simple_event', payload='helloworld'))
-
-    
-    n.setServiceParent(application)   
-
-
-    return run(application)
+        n = node.Node(name='simple-%s' % config.subCommand)
+        
+        if config.subCommand == 'subscriber':
+            # subscriber node
+            def _print(e, m):
+                print "Message arrived: %s" % m.toJson()
+                
+            n.onEvent = _print
+            n.start().addCallback(lambda _: n.subscribe(config.subOptions['event']))
+        else:
+            # publisher node
+            n.start().addCallback(lambda _: n.publish(config.subOptions['event'], payload=config.subOptions['payload']))
+            
+        n.setServiceParent(application)
+    except usage.error, ue:
+        print config
+        print ue
+    else:
+        runApp(config, application)
 
 def run_web_node():
     

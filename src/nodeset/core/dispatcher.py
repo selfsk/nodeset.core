@@ -8,13 +8,12 @@ from twisted.application import service
 from twisted.internet import defer
 
 import logging
-import hashlib
+import simplejson
 
-from nodeset.core import routing, heartbeat, config
+from nodeset.core import routing, heartbeat, config, message
 from nodeset.common import log
 
-# entangled DHT stuff
-from nodeset.core.dht import NodeSetDHT, NodeSetDataStore
+from nodeset.core.pubsub import agent
 
 class EventDispatcher(Referenceable, service.Service):
     """ 
@@ -45,41 +44,81 @@ class EventDispatcher(Referenceable, service.Service):
         host, port = location.split(':')
         
         return host, int(port), ref
-    
+
  
         
     def startService(self):
         self.tub.startService()
         
-        if config.Configurator['dht-port']:
-            self.dht = NodeSetDHT(config.Configurator['dht-port'], dataStore=NodeSetDataStore())
-            self.routing.dht = self.dht
+        if config.Configurator.subCommand == 'xmpp':
+            jidname = config.Configurator.subOptions['jidname']
+            pwd = config.Configurator.subOptions['passwd']
+            xmpp_srv = config.Configurator.subOptions['server']
+            xmpp_fqdn = config.Configurator.subOptions['fqdn']
+            xmpp_pubsub = config.Configurator.subOptions['pubsub']
+        
+            xmpp_host =  xmpp_fqdn or xmpp_srv
+            xmpp_port = config.Configurator.subOptions['port']
+               
+            jid = "%s@%s/nodeset" % (jidname, xmpp_host)
+
+            log.msg("XMPP support enabled, jid(%s)" % jid)            
+            xmpp = agent.XmppAgent(xmpp_srv, jid, pwd, xmpp_port)
+            #xmpp.setServiceParent(self)
+            xmpp.startService()
             
-            def publishToDHT(eventDict, listen_url):
-                dht_key = "%s@%s" % (eventDict['parsed_uri'].eventName, eventDict['parsed_uri'].nodeName)
-                 
-                log.msg("publishing to DHT key(%s), value(%s)" % (dht_key, listen_url))
-                self.dht.publishData(dht_key, listen_url)
-              
-            def removeFromDHT(eventDict, listen_url):
-                dht_key = "%s@%s" % (eventDict['parsed_uri'].eventName, eventDict['parsed_uri'].nodeName)
-                log.msg("Removing from DHT key(%s),value(%s)" % (dht_key, listen_url))
-                
-                self.dht.removeData(dht_key)
-                
-            self.routing.addObserver('add', publishToDHT, self.listen_url)
-            self.routing.addObserver('remove', removeFromDHT, self.listen_url)
+            def on_event(msg):
+                log.msg("on_event")
+                items = xmpp.getEventItems(msg)
+                for item in items:
+                    #body = item.children[0]
+                    json = simplejson.loads(item.body.children[0])
+                    
+                    if json['host'] ==  jidname:
+                        log.msg("Event json %s" % json)
+                        _msg = message._Message()
+                        _msg.fromJson(json['msg'])
+                    
+                        print _msg.attrs
+                        eventURI = '%s@localhost/%s' % (json['node'], json['event_name'])
+                    
+                        self.remote_publish(eventURI, _msg)
+                    else:
+                        log.msg("Event for another node %s" % json)
+                    
+            xmpp.gotEvent = on_event
             
-            if config.Configurator['dht-nodes']:
-                snodes = config.Configurator['dht-nodes']
-                ntuple = [x.split(':') for x in snodes.split(',')]
+            def subscription_add(eventDict, xmpp):
+                uri = eventDict['parsed_uri']
                 
+                xmpp.hasNode(xmpp_pubsub, uri.eventName)\
+                    .addErrback(lambda _: 
+                                    xmpp.createNodeAndConfigure(xmpp_pubsub, uri.eventName))\
+                                    .addCallback(lambda _: xmpp.subscribe(xmpp_pubsub, uri.eventName))
+                                                                                  
                 
-                ntuple = [(x[0], int(x[1])) for x in ntuple]
+                #xmpp.subscribe(xmpp_pubsub, uri.getEventName)
                 
-                print ntuple
+            #def subscription_drop(eventDict, xmpp):
+            #    pass
+
+            def publish_fail(eventDict, xmpp):
+                uri = eventDict['parsed_uri']
+                msg = eventDict['args'][0]
                 
-                self.dht.joinNetwork(ntuple)
+                payload = {'event_name': uri.eventName, 'node': uri.nodeName, 'host': uri.hostName}
+                payload['msg'] = msg.toJson()
+                
+                log.msg("publish fail %s, %s, %s" % (eventDict, xmpp, payload))
+                
+                xmpp.publish(xmpp_pubsub, xmpp.jid.userhost(), uri.eventName, simplejson.dumps(payload))
+                
+            
+            
+            self.routing.addObserver('add', subscription_add, xmpp)
+            #self.routing.addObserver('remove', subscription_drop, xmpp)
+            #self.routing.addObserver('get', subscription_find, xmpp)
+            self.routing.addObserver('fail', publish_fail, xmpp)
             
     def stopService(self):
         self.heartbeat.cancel()
@@ -125,7 +164,9 @@ class EventDispatcher(Referenceable, service.Service):
                 method = 'publish'
                 err_back = lambda _: None
                 args = ()
-                
+             
+            #TODO: implement call() in Node
+            #d = n.getNode().call(method, event_name, msg).addErrback(err_back, *args)   
             d = n.getNode().callRemote(method, event_name, msg).addErrback(err_back, *args)
             
             defers.append(d)
@@ -138,24 +179,13 @@ class EventDispatcher(Referenceable, service.Service):
             return defers.pop()
         else:
             return
-        
-    def gotRemoteRoute(self, remote, eventUri, msg):
-        self.routing._add({'parsed_uri': eventUri, 'instance': remote})
-        
-        return remote.callRemote('publish', "%s@localhost/%s" % (eventUri.nodeName, eventUri.eventName), msg)
-        
-    def getRemote(self, furl, eventUri, msg):
-        if furl:
-            for f in furl:
-                log.msg("Doing remote publishing to %s to %s" % (eventUri.eventName, f))
-                self.tub.getReference(f).addCallback(self.gotRemoteRoute, eventUri, msg)
          
     def remote_publish(self, event_name, msg):
         log.msg("publishing %s(msg=%s)" % (event_name, msg), logLevel=logging.INFO)
         
         for d in self.routing.get(event_name):
             d.addCallback(self._do_publish, event_name, msg)\
-                  .addErrback(self.routing.onFailure, routing.NoSuchEntry, self.getRemote, msg)
+                  .addErrback(self.routing.onFailure, routing.NoSuchEntry, msg)
                   
        
     def remote_unsubscribe(self, event_name, node, name):

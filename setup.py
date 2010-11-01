@@ -25,8 +25,7 @@ setup(
     entry_points = {
                     'console_scripts': [
                                         'nodeset-dispatcher = nodeset.core.scripts:run_dispatcher',
-                                        'nodeset-node-subscribe = nodeset.core.scripts:run_node_sub',
-                                        'nodeset-node-publish = nodeset.core.scripts:run_node_pub',
+                                        'nodeset-node = nodeset.core.scripts:run_example_node',
                                         'nodeset-monitor = nodeset.core.stats.scripts:main',
                                         'nodeset-shell = nodeset.core.scripts:run_shell',
                                         'nodeset-web = nodeset.core.scripts:run_web_node',
