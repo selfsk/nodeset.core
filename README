@@ -1,23 +1,22 @@
-NodeSet right now is on rapid development. Code will be changed and APIs too.
+* Framework
 
-* NodeSet Framework
+Pub/Sub framework for distributed services, nodeset.core is based on Foolscap[1] RPC and twisted[2]. 
+Each "node" is a separate unix process, and all events delivering are performed by *dispatcher*, 
+the special unix process (also based on foolscap RPC).
 
-NodeSet is based on Foolscap[1] RPC and twisted[2]. This framework provides a way to build distributed services
-on top of publish/subscribe interface. Each Node is a separate unix process, and all events delivering are performed
-by dispatcher, the special unix process (also based on foolscap RPC).
-
-* NodeSet components:
-1. EventDispatcher - runs on its own, just listen for incoming foolscap RPC calls, and trace which nodes are available,
+* nodeset.core components:
+1. dispatcher - runs on its own, just listen for incoming foolscap RPC calls, and trace which nodes are available,
     and its health.
-2. Node - Each Node can act as publisher, as well as subscribers. 
- 2.1 NodeCollection - group nodes under one listen port
+2. node - Each Node can act as publisher, as well as subscribers. 
+ 2.1 node collection - group nodes under one listen port
 
 * Features
  - Distributed (each host has only one dispatcher, but many nodes. Events can be delivered between hosts)
  - Stateless (any node doesn't rely to dispatcher, if dispatcher will die, it does not affect nodes, as well as
      death of any nodes, does not affect other nodes and dispatcher)
- - Async (as well NodeSet is based on twisted, it's all about async programming :)
- 
+ - Web Integration (you can work with nodeset.core pub/sub from you twisted.web .rpy files [WiP])
+ - Monitoring (built in monitoring support [WiP])
+
 * Install (easy_install based)
 
 python setup.py install (or develop for development)
