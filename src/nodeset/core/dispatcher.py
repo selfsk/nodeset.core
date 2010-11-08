@@ -1,7 +1,7 @@
 """
 EventDispatcher's code, use this code to write your own dispatchers
 """
-from foolscap.api import Referenceable, UnauthenticatedTub, Tub
+from foolscap.api import Referenceable, UnauthenticatedTub
 from foolscap.ipb import DeadReferenceError
 
 from twisted.application import service
@@ -10,7 +10,7 @@ from twisted.internet import defer
 import logging
 import simplejson
 
-from nodeset.core import routing, heartbeat, config, message
+from nodeset.core import routing, config, message
 from nodeset.common import log
 
 from nodeset.core.pubsub import agent
@@ -34,8 +34,8 @@ class EventDispatcher(Referenceable, service.Service):
         self.tub.setLocation('%s:%d' % (host, port))
         self.tub.registerReference(self, refname)
         
-        self.heartbeat = heartbeat.NodeHeartBeat(self)
-        self.heartbeat.schedule(10)
+        
+        
     
     def _split(self, url):
         schema, rest = url.split('://')
@@ -49,6 +49,10 @@ class EventDispatcher(Referenceable, service.Service):
         
     def startService(self):
         self.tub.startService()
+        
+        from nodeset.core import heartbeat
+        self.heartbeat = heartbeat.NodeHeartBeat(self)
+        self.heartbeat.schedule(10)
         
         if config.Configurator.subCommand == 'xmpp':
             jidname = config.Configurator.subOptions['jidname']

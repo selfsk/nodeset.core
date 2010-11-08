@@ -2,14 +2,14 @@
 Base classes for Nodes, use them as base class for your Nodes
 """
 from foolscap.api import Referenceable, Tub
-from foolscap.reconnector import Reconnector 
+
 from uuid import uuid4
 
 from twisted.application import service
-from twisted.internet import reactor, defer
+from twisted.internet import defer
 from twisted.python import components
 
-from nodeset.core import interfaces, stream, message, config, slicers
+from nodeset.core import interfaces, stream, message, config
 #from nodeset.common.log import setLogger
 from nodeset.common import log
 
@@ -151,6 +151,8 @@ class Node(Referenceable, service.Service):
         """
         Initialized Reconnector instance. Should be called after tub is initialized
         """
+        from foolscap.reconnector import Reconnector 
+        
         Reconnector.verbose = True
         self.connector = Reconnector(self.dispatcher_url, self._gotDispatcher, (), {})
         self.connector.startConnecting(self.tub)
@@ -390,6 +392,8 @@ class NodeCollection(Node):
         """
         nodes = self.events[event]
         defers = []
+        
+        from twisted.internet import reactor
         
         for n in nodes:
             d = defer.Deferred()

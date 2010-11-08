@@ -2,14 +2,14 @@
 from twisted.application import app
 from twisted.python import usage
 from twisted.python.log import ILogObserver
-from twisted.python.util import switchUID, uidFromString, gidFromString
+from twisted.python.util import uidFromString, gidFromString
 #from twisted.python.runtime import platformType
 
-from twisted.internet import reactor
+#from twisted.internet import reactor
 
 import sys
 
-from twisted.scripts._twistd_unix import ServerOptions, \
+from twisted.scripts._twistd_unix import \
             UnixApplicationRunner as _SomeApplicationRunner, _umask
     
 from nodeset.core.config import Configurator

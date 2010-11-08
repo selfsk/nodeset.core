@@ -1,7 +1,5 @@
-from twisted.words.xish import domish, xmlstream
+from twisted.words.xish import domish
 from uuid import uuid4
-
-import types
 
 class XmppInstance(object):
     """

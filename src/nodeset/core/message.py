@@ -120,7 +120,7 @@ class _Message(Copyable, RemoteCopy):
         return True
             
             
-class NodeMessage:
+class NodeMessage(object):
     """
     Base class for NodeSet messages
     """
@@ -128,14 +128,21 @@ class NodeMessage:
     """
     @ivar _attrs: dict of message attributes
     """
-    attrs = {'_delivery_mode': Attribute('_delivery_mode', 'all')}
-    
+    #attrs = {'_delivery_mode': Attribute('_delivery_mode', 'all')}
+     
     def __init__(self):
-        Attribute('payload')
-        Attribute('name')
+        self.__dict__['attrs'] = {}
         
+        Attribute('_delivery_mode', 'all')
+      
+    def __str__(self):
+        return str(self.__class__)
+              
+    def __repr__(self):
+        return repr(self.__class__)
+    
     def __getattr__(self, name):
-        if self.attrs.has_key(name):
+        if self.__dict__.has_key('attrs') and self.attrs.has_key(name):
             return self.attrs[name]
         elif self.__dict__.has_key(name):
             return self.__dict__[name]
@@ -143,7 +150,7 @@ class NodeMessage:
             raise KeyError("getattr() - Class %s has no property %s" % (self, name))
         
     def __setattr__(self, name, value):
-        if self.attrs.has_key(name):
+        if self.__dict__.has_key('attrs') and self.attrs.has_key(name):
             Attribute(name, value)
         elif self.__dict__.has_key(name):
             self.__dict__[name] = value

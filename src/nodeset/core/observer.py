@@ -1,5 +1,4 @@
 from twisted.internet import defer
-import uuid
 
 from nodeset.common import log
  

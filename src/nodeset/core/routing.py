@@ -3,7 +3,7 @@ Dispatcher's routing classes
 """
 from zope.interface import implements
 
-from nodeset.core import interfaces, dht
+from nodeset.core import interfaces
 from nodeset.common import log
 
 from nodeset.core.observer import Observer, ObserverCarousel
@@ -48,6 +48,9 @@ class EventURI:
         if event_uri:
             self._split_uri(event_uri)
         
+    def __str__(self):
+        return str("%s@%s/%s" % (self.nodeName, self.hostName, self.eventName))
+    
     def _split_uri(self, event_uri):
         """
         Parsing of event URI (i.e. node@host/event)
@@ -138,10 +141,13 @@ class RoutingTable:
         
         #ns = [x for x in self.entries if x.getEventName() == name]
         
+        
         # then lookup by hostname
         if ev.hostName:
             ns = RREntrySet([x for x in ns if x.getHost() == ev.hostName])
+
         
+                
         # and then lookup by node_name, but avoid check if node is wildcard
         if ev.nodeName and ev.nodeName != '*':
             ns = RREntrySet([x for x in ns if x.getName() == ev.nodeName])

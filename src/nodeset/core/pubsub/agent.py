@@ -1,6 +1,6 @@
 from twisted.words.protocols.jabber import client, jid
 from twisted.words.protocols.jabber import xmlstream
-from twisted.words.xish import domish, xpath
+from twisted.words.xish import xpath
 
 from twisted.application import service, internet
 

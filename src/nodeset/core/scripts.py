@@ -1,13 +1,8 @@
 from twisted.application import service as ts, internet
-from twisted.internet import reactor
 from twisted.python import usage
 
 
 from nodeset.common.twistedapi import run, NodeSetAppOptions, runApp
-from nodeset.core import node, dispatcher
-
-from nodeset.core import web
-from twisted.web import static, server, script
 
 class PubSubOptions(usage.Options):
     optParameters = [
@@ -80,10 +75,15 @@ def run_dispatcher():
     config = DispatcherOptions()
     application = ts.Application('nodeset-dispatcher')
     
+    import sys, pprint
+    
+    #pprint.pprint(sys.modules)
     
     try:
         config.parseOptions()
 
+        from nodeset.core import dispatcher
+        
         d = dispatcher.EventDispatcher(config['listen'])
         d.setServiceParent(application)
     except usage.error, ue:
@@ -101,6 +101,8 @@ def run_example_node():
     
     try:
         config.parseOptions()
+        
+        from nodeset.core import node
         
         n = node.Node(name='simple-%s' % config.subCommand)
         
@@ -131,6 +133,9 @@ def run_web_node():
     try:
         config.parseOptions()
 
+        from nodeset.core import web
+        from twisted.web import static, script
+
         n = web.WebBridgeNode()
         n.setServiceParent(application)
      
@@ -154,4 +159,6 @@ def run_web_node():
     
     #n.start()
     #n.setServiceParent(Application)
-    
+ 
+if __name__ == '__main__':
+    run_dispatcher()

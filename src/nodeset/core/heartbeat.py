@@ -1,5 +1,5 @@
 from zope.interface import implements
-from twisted.internet import reactor, defer
+
 
 from nodeset.core import interfaces
 
@@ -116,6 +116,7 @@ class NodeHeartBeat:
         """
         Schedules heartbeating
         """
+        from twisted.internet import reactor
         self.delayed = reactor.callLater(delay, self._do_heartbeat)
         
     def _do_heartbeat(self):
