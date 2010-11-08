@@ -15,12 +15,14 @@ class XmppOptions(usage.Options):
                      ['node', 'n', None, 'node name'],
                      ['publish', None, None, 'publish entry'],
                      ['rcpt', None, None, 'rcpt node (for publish)'],
-                     ['subId', None, None, 'subscription Id (for unsubscribe)']
+                     ['subId', None, None, 'subscription Id (for unsubscribe)'],
+                     ['pubsub', None, None, 'pubsub jabber service name']
                      ]
     
     optFlags = [
                 ['subscriptions', None, 'subscription list'],
-                ['unsubscribe', None, 'unsubscribe by node']
+                ['unsubscribe', None, 'unsubscribe by node'],
+                ['subscribe', None, 'subscribe to node']
                 ]
 
 class XmppAppOptions(NodeSetAppOptions):
@@ -38,20 +40,24 @@ def run_sub():
         bot = XmppAgent(config.subOptions['server'], config.subOptions['jid'], config.subOptions['password'])
         
         bot.setServiceParent(application)
-
-        print config.subOptions['publish']
-        print config.subOptions['subscriptions']
+        d = bot.start()
         
-#        if config.subOptions['publish']:
-#            reactor.callLater(3, bot.publish, 'pubsub.su-msk.dyndns.org', config.subOptions['rcpt'], config.subOptions['node'], config.subOptions['publish'])
-#        elif config.subOptions['subscriptions']:
-#            reactor.callLater(3, bot.subscriptions, 'pubsub.su-msk.dyndns.org', config.subOptions['node'])
-#        elif config.subOptions['unsubscribe']:
-#            reactor.callLater(3, bot.unsubscribe, 'pubsub.su-msk.dyndns.org', config.subOptions['node'], config.subOptions['subId'])
-#        else:
+        #print config.subOptions['publish']
+        #print config.subOptions['subscriptions']
+        
+        if config.subOptions['publish']:
+            d.addCallback(lambda _: bot.publish(config.subOptions['pubsub'], config.subOptions['rcpt'], config.subOptions['node'], config.subOptions['publish']))
+        elif config.subOptions['subscriptions']:
+            d.addCallback(lambda _: bot.subscriptions(config.subOptions['pubsub'], config.subOptions['node']))
+        elif config.subOptions['unsubscribe']:
+            d.addCallbac(lambda _: bot.unsubscribe(config.subOptions['pubsub'], config.subOptions['node'], config.subOptions['subId']))
+        elif config.subOptions['subscribe']:
+            d.addCallback(lambda _: bot.subscribe(config.subOptions['pubsub'], config.subOptions['node']))
+        
+        def _err(fail):
+            print fail
             
-            reactor.callLater(3, bot.subscribe, 'pubsub.su-msk.dyndns.org', config.subOptions['node'])
-        
+        d.addErrback(_err)
     except usage.error, ue:
         print config
         print ue

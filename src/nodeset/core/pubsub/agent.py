@@ -66,7 +66,11 @@ class XmppAgent(XmppInstance, service.Service):
         
         self.service = None
         self.xmlstream = None
+        self.start_defer = defer.Deferred()
         
+    def start(self):
+        return self.start_defer
+    
     def startService(self):
         
         a = client.BasicAuthenticator(self.jid, self.pwd)
@@ -99,6 +103,8 @@ class XmppAgent(XmppInstance, service.Service):
             xmlstream.addObserver(observer, xmlstream._dispatcher)
            
         self.xmlstream = xmlstream
+        
+        self.start_defer.callback(xmlstream)
         
         #xmlstream.addObserver('/message', self.gotMessage)
         log.msg("clientAuth: finished")

@@ -53,6 +53,7 @@ class WebNodeOptions(NodeSetAppOptions):
     
 def run_shell():
     from twisted.manhole.telnet import ShellFactory
+    from nodeset.core import node
     
     application = ts.Application('nodeset-shell')
     n = node.ShellNode()
@@ -74,10 +75,6 @@ def run_dispatcher():
     
     config = DispatcherOptions()
     application = ts.Application('nodeset-dispatcher')
-    
-    import sys, pprint
-    
-    #pprint.pprint(sys.modules)
     
     try:
         config.parseOptions()
