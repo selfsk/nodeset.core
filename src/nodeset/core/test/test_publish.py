@@ -1,10 +1,9 @@
-from twisted.trial import unittest
-from twisted.internet import defer, reactor
+#from twisted.trial import unittest
 from twisted.python import log
 
-from nodeset.core import message, node
+from nodeset.core import message
 
-from common import NodeTestCase
+from common import NodeTestCase, TestMessage
      
        
 class PublishSubscribeTestCase(NodeTestCase):
@@ -28,7 +27,7 @@ class PublishSubscribeTestCase(NodeTestCase):
         d = self.node.dqueue.get()
         d.addCallback(self.checkReceivedData, 'event_name', 'payload', 'test-publish')
         
-        self.node.publish('event_name', payload='test-publish')
+        self.node.publish('event_name', msgClass=TestMessage, payload='test-publish')
         
         return d
     
@@ -36,6 +35,7 @@ class PublishSubscribeTestCase(NodeTestCase):
         class TMsg(message.NodeMessage):
             
             def __init__(self):
+                message.NodeMessage.__init__(self)
                 message.Attribute('custom_field')
         
         d = self.node.dqueue.get()        
