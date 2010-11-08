@@ -1,7 +1,5 @@
 from nodeset.core import node
-from nodeset.common import log
 
-from twisted.trial import unittest
 from twisted.internet import defer
 
 from common import NodeTestCase
@@ -13,6 +11,9 @@ class TStreamNode(node.StreamNode):
         
 
 class StreamNodeTestCase(NodeTestCase):
+    
+    def skip(self):
+        return "Stream interface is not defined yet"
     
     def setUp(self):
         NodeTestCase.setUp(self)

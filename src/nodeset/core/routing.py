@@ -102,6 +102,7 @@ class RoutingTable:
         self.entries = {}
         self.factory = RouteEntryFactory()
        
+        # default observers for routing table actions (add, get, remove and failure)
         self.observers = {'add': [Observer(self._add)],
                           'remove': [Observer(self._remove)],
                           'get': [Observer(self._get)],
@@ -124,7 +125,7 @@ class RoutingTable:
         """
         return list of destination nodes
         """
-        log.msg("Looking up %s(%s)" % (event_uri, node))
+        log.msg("Looking up %s(instance=%s)" % (event_uri, node))
         
         ev = EventURI(event_uri)
         
@@ -197,7 +198,7 @@ class RoutingTable:
         except klass, e:
             eventUri = e.eventUri
         
-            print eventUri.hostName
+            #print eventUri.hostName
             
             # if it's not for localhost, twist the carousel
             if eventUri.hostName != 'localhost':
@@ -218,6 +219,8 @@ class RoutingTable:
         if not self.entries.has_key(parsed.eventName):
             self.entries[parsed.eventName] = RREntrySet()
             
+        log.msg("Adding route entry for %s" % str(parsed))
+        
         self.entries[parsed.eventName]\
                  .add(self.factory.getEntry(parsed.hostName, parsed.eventName, 
                                             eventDict['instance'], parsed.nodeName))

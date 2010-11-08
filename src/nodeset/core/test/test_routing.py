@@ -1,6 +1,6 @@
 from twisted.trial import unittest
 
-from nodeset.core import routing, node, dispatcher, config
+from nodeset.core import routing, dispatcher, config
 
 class RoutingTest(unittest.TestCase):
     
@@ -9,8 +9,10 @@ class RoutingTest(unittest.TestCase):
         c._config = {'dispatcher-url': 'pbu://localhost:5333/dispatcher',
                      'listen': 'pbu://localhost:5333/dispatcher',
                      'dht-nodes': None,
-                     'dht-port': 4000}
-        
+                     'dht-port': None}
+       
+        c.subCommand = None
+         
         self.dispatcher = dispatcher.EventDispatcher()
         self.dispatcher.startService()
        
@@ -81,7 +83,12 @@ class RoutingTest(unittest.TestCase):
         self.testRoutingAddLocal()
         self.routing.remove('event_name', None)
         
-        self.assertTrue(len(self.routing.get('event_name')) == 0)
+        def _cb(entries, length):
+            self.assertTrue(len(entries) == length)
+        
+        self.routing.get('event_name')[0].addCallback(_cb, 0)
+        
+        #self.assertTrue(len(self.routing.get('event_name')) == 0)
         
     #def testRoutingRemoveRemote(self):
     #    self.testRoutingAddRemote()
@@ -96,13 +103,23 @@ class RoutingTest(unittest.TestCase):
         
         self.routing.remove('event_name1', None)
         
-        self.assertTrue(len(self.routing.get('event_name2')) == 1)
-        self.assertTrue(len(self.routing.get('event_name3')) == 1)
-        self.assertTrue(len(self.routing.get('event_name1')) == 0)
+        def _cb(entries, length):
+            self.assertTrue(len(entries) == length)
+        
+        self.routing.get('event_name2')[0].addCallback(_cb, 1)
+        self.routing.get('event_name3')[0].addCallback(_cb, 1)
+        self.routing.get('event_name1')[0].addCallback(_cb, 0)
+           
+        #self.assertTrue(len(self.routing.get('event_name2')) == 1)
+        #self.assertTrue(len(self.routing.get('event_name3')) == 1)
+        #self.assertTrue(len(self.routing.get('event_name1')) == 0)
         
     def testRoutingAddDupilcate(self):
         self.routing.add('event_name1', None)
-        self.failUnlessRaises(IndexError, self.routing.add, 'event_name1', None)
+        dl = self.routing.add('event_name1', None)
+        
+        self.failUnlessFailure(dl[0], IndexError)
+        #self.failUnlessRaises(IndexError, self.routing.add, 'event_name1', None)
 
     #def testRoutingAddDuplicateRemote(self):
     #    n = node.Node(name='node_name')
