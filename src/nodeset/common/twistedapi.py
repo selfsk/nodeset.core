@@ -23,6 +23,9 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
     """
     
     optFlags = [['nodaemon','n',  "don't daemonize, don't use default umask of 0077"],
+                ['savestats', None,
+                 "save the Stats object rather than the text output of "
+                 "the profiler."],
                 ['quiet', 'q', "No-op for backwards compatibility."],
                 ['originalname', None, "Don't try to change the process name"],
                 ['syslog', None,   "Log to syslog, not to file"],

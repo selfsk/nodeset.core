@@ -7,7 +7,7 @@ if os.path.exists('src'):
 from nodeset.core import copyright
 
 setup(
-    name = "nodeset",
+    name = "nodeset.core",
     version = copyright.version,
     packages = find_packages('src'),
     package_dir = {'': 'src'},
@@ -15,7 +15,7 @@ setup(
     author_email = 'self.sik@gmail.com',
     url = 'http://github.com/selfsk/nodeset.core',
     
-    install_requires = ['twisted>=9.0.0', 'foolscap>=0.5.0', 'pyopenssl'],
+    install_requires = ['twisted>=9.0.0', 'foolscap>=0.5.0', 'pyopenssl', 'simplejson'],
     
     package_data = {
         # If any package contains *.txt and .yml files
