@@ -8,6 +8,8 @@ logLevel = {logging.DEBUG: 'DEBUG',
             logging.WARN: 'WARN',
             logging.CRITICAL: 'CRITICAL'}
 
+import sys
+
 class NodeSetLog(logfile.DailyLogFile):
     """ Special class for log rotation, always return True on shouldRotate(),
     on SIGUSR1, handler checks shouldRotate() value
@@ -17,7 +19,15 @@ class NodeSetLog(logfile.DailyLogFile):
         
     def shouldRotate(self):
         return True
-    
+class NodeSetLogStdout(log.FileLogObserver):
+        
+    def emit(self, eventDict):
+        text = log.textFromEventDict(eventDict)
+        
+        if eventDict['system'] == '-':
+            self.write("%s\n" % text)
+            self.flush()
+        
 class NodeSetLogObserver(log.FileLogObserver):
     
     def __init__(self, *args, **kwargs):

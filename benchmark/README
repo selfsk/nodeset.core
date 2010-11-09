@@ -1,0 +1,13 @@
+It's simple benchmark suite, just to know how it works :)
+
+ * txconsumer/txpublisher are tests for txAMQP, it's slightly modified examples from txamqp source code
+  - for this scripts you have to download amqp0-8.xml spec file (from txamqp source code)
+
+ * node.py is a nodeset.core node which can work in 'subscriber' or 'publisher' mode
+  - run as subscriber:
+    $ /usr/bin/python2.6 node.py subscriber -e simple_event --reply
+  - run as publisher
+    $ /usr/bin/python2.6 node.py publisher -e simple_event -m 5 --reply
+
+  Use --reply option only in case when you want to measure message round-trip (subscriber replies to publisher as well)
+  

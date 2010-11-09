@@ -68,7 +68,9 @@ class Stats:
             self._stats['latency'][l] = self._update(l, cnt, v, val)
        
     def __str__(self):
-        return str(pprint.pprint(self._stats))
+        msg_rate = self._stats['msgcount'] / (self._stats['etime'] - self._stats['stime'])
+        
+        return str("-STATS-\n%s\nrate: %s\n-EOF-" % (pprint.pformat(self._stats), msg_rate))
      
         
         

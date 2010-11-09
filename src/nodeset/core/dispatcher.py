@@ -191,7 +191,9 @@ class EventDispatcher(Referenceable, service.Service):
             d.addCallback(self._do_publish, event_name, msg)\
                   .addErrback(self.routing.onFailure, routing.NoSuchEntry, msg)
                   
-       
+
+        return True
+    
     def remote_unsubscribe(self, event_name, node, name):
         log.msg("unsubscribe for %s by %s" % (event_name, node), logLevel=logging.INFO)
         self.routing.remove(event_name, node)

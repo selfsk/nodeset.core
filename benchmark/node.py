@@ -1,12 +1,14 @@
 from nodeset.common.twistedapi import runApp, NodeSetAppOptions
 from nodeset.common import log
 
-from nodeset.core import node, message
+from nodeset.core import node, message, config
 
 from twisted.application import service, internet
 from twisted.python import usage
-
+from twisted.python.log import ILogObserver#, StdioOnnaStick#, FileLogObserver, msg
 from common import Message, Stats
+
+from twisted.internet import reactor
 
 import time
 
@@ -38,6 +40,10 @@ class BenchOptions(usage.Options):
                      ['msgcount', 'm', None, 'msg count', int],
                      ['event', 'e', None, 'event name']
                      ]
+    
+    optFlags = [
+                ['reply', 'r', 'if want to measure the round-trip time for message']
+                ]
 
 class BenchAppOptions(NodeSetAppOptions):
     
@@ -59,7 +65,7 @@ class MyNode(node.Node):
         m = Message()
         m.fromString(msg.toJson())
         
-        print str(msg.toJson())
+        #print str(msg.toJson())
         
         if event == 'reply':
             r_ts = m.attrs['ts']
@@ -70,8 +76,10 @@ class MyNode(node.Node):
             self.stats.msgcount()
             self.stats.updateLatency(latency)
         elif event == 'teststop':
+            from twisted.internet import reactor
+            
             print str(self.stats)
-        
+            reactor.stop()
         else:
             if m.attrs.has_key('cmd'):
                 if m.attrs['cmd'] == 'start':
@@ -80,53 +88,84 @@ class MyNode(node.Node):
                 elif m.attrs['cmd'] == 'stop':
                     self.stats.stop()
                 
-                    print str(self.stats)
-                    self.publish('teststop')
+                    print (str(self.stats))
+             
+                    from twisted.internet import reactor
+                           
+                    #print str(self.stats)
+                    self.publish('teststop').addCallback(lambda _: reactor.stop())
+                    
                     
             # these code handled by subscriber
             elif m.attrs.has_key('ts'):
                 recv_ts = time.time()
 
-                self.publish('reply', msgClass=ReplyMessage, ts=recv_ts, o_ts=m.attrs['ts'], seq=m.attrs['seq'])
+                if config.Configurator().subOptions['reply']:
+                    self.publish('reply', msgClass=ReplyMessage, ts=recv_ts, o_ts=m.attrs['ts'], seq=m.attrs['seq'])
             
                 latency = recv_ts - m.attrs['ts']
             
                 self.stats.msgcount()
                 self.stats.updateLatency(latency)
+                
+                
+                    
     
 def main():
     
     application = service.Application('benchmark')
     config = BenchAppOptions()
     
-      
+    import sys
+
+    # dirty hack to print data to stdout    
+    application.setComponent(ILogObserver, log.NodeSetLogStdout(sys.stdout).emit)
     def _err(fail):
         print fail
         
     try:
         config.parseOptions()
+
+        # disable forking
+        config['nodaemon'] = True
         
+        print "Creating node simple-%s" % config.subCommand
+                 
         n = MyNode(name='simple-%s' % config.subCommand)
         n.stats = Stats()
         
         if config.subCommand == 'subscriber':
-            n.start().addCallback(lambda _: n.subscribe(config.subOptions['event'])).addErrback(_err)
+            config['listen'] = 'localhost:5788'
+            config['pidfile'] = '/tmp/s_XXX.pid'
+            print "Subscribing to %s" % config.subOptions['event']
+            n.start().addCallback(lambda _: n.subscribe(config.subOptions['event']).addErrback(_err)).addErrback(_err)
+            print "Waiting for messages"
         else:
+            config['listen'] = 'localhost:5789'
+            config['pidfile'] = '/tmp/p_XXX.pid'
             # publisher node
-          
-                
             def iterate(node, event):
-                node.subscribe('reply')
-                node.subscribe('teststop')
+                if config.subOptions['reply']:
+                    node.subscribe('reply')
+                    node.subscribe('teststop')
+                    
                 node.publish(event, msgClass=CustomCmd, cmd='start')
+                n.stats.start()
                 
                 for i in range(config.subOptions['msgcount']):
-                    print "publishing %s" % event
                     node.publish(event, msgClass=CustomMessage, ts=time.time(), seq=i).addErrback(_err)
-                
-                node.publish(event, msgClass=CustomCmd, cmd='stop')
+                    # count published message if no --reply specified, otherwise waiting for replies
+                    if not config.subOptions['reply']:
+                        n.stats.msgcount()
+
                     
+                node.publish(event, msgClass=CustomCmd, cmd='stop')
+
+                n.stats.stop()
+             
+            print "Start publishing %d message(s) to event %s" % (config.subOptions['msgcount'], config.subOptions['event'])    
             n.start().addCallback(iterate, config.subOptions['event']).addErrback(_err)
+            
             
             #n.start().addCallback(lambda _: n.publish(config.subOptions['event'], payload=config.subOptions['payload']))
             
