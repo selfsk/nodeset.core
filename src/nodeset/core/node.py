@@ -131,6 +131,7 @@ class Node(Referenceable, service.Service):
     def stopService(self):
         self.tub.stopService()
         
+        
     def _handle_signal(self, signo, bt):
         log.msg("Handling signal %d, initiate re-connecting" % signo)
         
@@ -153,7 +154,7 @@ class Node(Referenceable, service.Service):
         """
         from foolscap.reconnector import Reconnector 
         
-        Reconnector.verbose = True
+        Reconnector.verbose = verbose
         self.connector = Reconnector(self.dispatcher_url, self._gotDispatcher, (), {})
         self.connector.startConnecting(self.tub)
       

@@ -135,14 +135,20 @@ def main():
         n.stats = Stats()
         
         if config.subCommand == 'subscriber':
-            config['listen'] = 'localhost:5788'
-            config['pidfile'] = '/tmp/s_XXX.pid'
+            if config['listen'] == 'localhost:5444':
+                config['listen'] = 'localhost:5788'
+            if config['pidfile'] == 'twistd.pid':
+                config['pidfile'] = '/tmp/s_XXX.pid'
+                
             print "Subscribing to %s" % config.subOptions['event']
             n.start().addCallback(lambda _: n.subscribe(config.subOptions['event']).addErrback(_err)).addErrback(_err)
             print "Waiting for messages"
         else:
-            config['listen'] = 'localhost:5789'
-            config['pidfile'] = '/tmp/p_XXX.pid'
+            if config['listen'] == 'localhost:5444':
+                config['listen'] = 'localhost:5789'
+            if config['pidfile'] == 'twistd.pid':
+                config['pidfile'] = '/tmp/p_XXX.pid'
+            
             # publisher node
             def iterate(node, event):
                 if config.subOptions['reply']:

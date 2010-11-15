@@ -196,7 +196,7 @@ class EventDispatcher(Referenceable, service.Service):
     
     def remote_unsubscribe(self, event_name, node, name):
         log.msg("unsubscribe for %s by %s" % (event_name, node), logLevel=logging.INFO)
-        self.routing.remove(event_name, node)
+        self.routing.remove(event_name, node, name)
         
         if self.heartbeat.has(node):
             self.heartbeat.remove(node)

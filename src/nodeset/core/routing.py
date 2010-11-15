@@ -215,7 +215,7 @@ class RoutingTable:
     def _add(self, eventDict):
         
         parsed = eventDict['parsed_uri']
-        
+                
         if not self.entries.has_key(parsed.eventName):
             self.entries[parsed.eventName] = RREntrySet()
             
@@ -236,16 +236,26 @@ class RoutingTable:
         #key = "%s@%s/%s" % (node_name, host, name)
         #log.msg("Adding %s to routing table" % key)
         
+        parsedUri = EventURI(event_uri)
+        
+        if parsedUri.nodeName == '*':
+            parsedUri.nodeName = node_name
+            
         d = {'uri': event_uri,
-             'parsed_uri': EventURI(event_uri),
-             'instance': node,
-             'node_name': node_name}
+             'parsed_uri': parsedUri,
+             'instance': node}
+             
         
         return self.carousel.twist(self.observers['add'], d)
         
-    def remove(self, event_uri, node):
+    def remove(self, event_uri, node, node_name=None):
+        
+        parsedUri = EventURI(event_uri)
+        if parsedUri.nodeName == '*':
+            parsedUri.nodeName = node_name
+            
         d = {'uri': event_uri,
-             'parsed_uri': EventURI(event_uri),
+             'parsed_uri': parsedUri,
              'instance': node}
         
         return self.carousel.twist(self.observers['remove'], d)
