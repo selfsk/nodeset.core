@@ -5,7 +5,6 @@ from foolscap.api import Referenceable, UnauthenticatedTub
 from foolscap.ipb import DeadReferenceError
 
 from twisted.application import service
-from twisted.internet import defer
 
 import logging
 import simplejson
@@ -13,7 +12,7 @@ import simplejson
 from nodeset.core import routing, config, message
 from nodeset.common import log
 
-from nodeset.core.pubsub import agent
+
 
 class EventDispatcher(Referenceable, service.Service):
     """ 
@@ -34,8 +33,6 @@ class EventDispatcher(Referenceable, service.Service):
         self.tub.setLocation('%s:%d' % (host, port))
         self.tub.registerReference(self, refname)
         
-        
-        
     
     def _split(self, url):
         schema, rest = url.split('://')
@@ -55,6 +52,9 @@ class EventDispatcher(Referenceable, service.Service):
         self.heartbeat.schedule(10)
         
         if config.Configurator.subCommand == 'xmpp':
+            
+            from nodeset.core.pubsub import agent
+            
             jidname = config.Configurator.subOptions['jidname']
             pwd = config.Configurator.subOptions['passwd']
             xmpp_srv = config.Configurator.subOptions['server']
@@ -157,32 +157,16 @@ class EventDispatcher(Referenceable, service.Service):
         print "<-> %s" % data
         
     def _do_publish(self, entries, event_name, msg):
-        #print "---> %s" % entries
-        defers = []
         for n in entries:
             method = 'event'
             err_back = self._dead_reference
             args = (None, n.getNode(),)
              
-            if isinstance(n, routing.RemoteRouteEntry):
-                method = 'publish'
-                err_back = lambda _: None
-                args = ()
-             
             #TODO: implement call() in Node
-            #d = n.getNode().call(method, event_name, msg).addErrback(err_back, *args)   
-            d = n.getNode().callRemote(method, event_name, msg).addErrback(err_back, *args)
+            n.getNode().callRemote(method, event_name, msg).addErrback(err_back, *args)
             
-            defers.append(d)
             if msg._delivery_mode != 'all':
                 break
-            
-        if len(defers) > 1:
-            return defer.DeferredList(defers)
-        elif len(defers) == 1:
-            return defers.pop()
-        else:
-            return
          
     def remote_publish(self, event_name, msg):
         log.msg("publishing %s(msg=%s)" % (event_name, msg), logLevel=logging.INFO)
@@ -203,6 +187,7 @@ class EventDispatcher(Referenceable, service.Service):
                                  
     def remote_subscribe(self, event_name, node, name):
         log.msg("subscription to %s by %s" % (event_name, node), logLevel=logging.INFO)
+  
         self.routing.add(event_name, node, name)
         
         if not self.heartbeat.has(node):

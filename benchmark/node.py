@@ -121,7 +121,7 @@ def main():
     # dirty hack to print data to stdout    
     application.setComponent(ILogObserver, log.NodeSetLogStdout(sys.stdout).emit)
     def _err(fail):
-        print fail
+        log.msg(fail)
         
     try:
         config.parseOptions()
@@ -149,6 +149,22 @@ def main():
             if config['pidfile'] == 'twistd.pid':
                 config['pidfile'] = '/tmp/p_XXX.pid'
             
+            def continue_publish(dummy, node, event, init_count, msgcount):
+                #log.msg("msgcount %s" % msgcount)
+                msgcount -= 1
+                seq = init_count - msgcount
+                
+                if not config.subOptions['reply']:
+                        n.stats.msgcount()
+                        
+                if msgcount < 0:
+                    n.stats.stop()
+                    node.publish(event, msgClass=CustomCmd, cmd='stop')
+                else:
+                    node.publish(event, msgClass=CustomMessage, ts=time.time(), seq=seq)\
+                        .addCallback(continue_publish, node, event, init_count, msgcount)\
+                        .addErrback(_err)
+                
             # publisher node
             def iterate(node, event):
                 if config.subOptions['reply']:
@@ -158,16 +174,17 @@ def main():
                 node.publish(event, msgClass=CustomCmd, cmd='start')
                 n.stats.start()
                 
-                for i in range(config.subOptions['msgcount']):
-                    node.publish(event, msgClass=CustomMessage, ts=time.time(), seq=i).addErrback(_err)
+                
+                #for i in range(config.subOptions['msgcount']):
+                node.publish(event, msgClass=CustomMessage, ts=time.time(), seq=0)\
+                    .addCallback(continue_publish, node, event, 
+                                 int(config.subOptions['msgcount']), int(config.subOptions['msgcount']))\
+                    .addErrback(_err)
+                                    
                     # count published message if no --reply specified, otherwise waiting for replies
-                    if not config.subOptions['reply']:
-                        n.stats.msgcount()
+                
 
-                    
-                node.publish(event, msgClass=CustomCmd, cmd='stop')
-
-                n.stats.stop()
+                
              
             print "Start publishing %d message(s) to event %s" % (config.subOptions['msgcount'], config.subOptions['event'])    
             n.start().addCallback(iterate, config.subOptions['event']).addErrback(_err)

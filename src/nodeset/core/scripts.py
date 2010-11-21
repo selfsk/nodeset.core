@@ -35,9 +35,11 @@ class DispatcherOptions(NodeSetAppOptions):
                     ['xmpp', None, DispatcherXmppOptions, 'xmpp pubsub, required for inter-host communication']
                     ]
     
+    optFlags = [['verbose', None, 'enable verbose logging']]
+    
     optParameters = [
                      ['listen', None, 'pbu://localhost:5333/dispatcher', 'dispatcher listen FURL'],
-                  
+                     
                      ]
 
 

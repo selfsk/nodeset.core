@@ -1,8 +1,8 @@
 from twisted.internet import defer
 
 from nodeset.common import log
+from nodeset.core import config
  
-
 class Observer(object):
     
     def __init__(self, callable, *args, **kwargs):
@@ -28,7 +28,8 @@ class ObserverCarousel(object):
     def twist(self, observers, eventDict): 
         defers = []
 
-        log.msg("twist carousel %s, %s" % (observers, eventDict))
+        if config.Configurator['verbose']:
+            log.msg("twist carousel %s, %s" % (observers, eventDict))
                 
         for i in observers:
             defers.append(defer.maybeDeferred(i.run, eventDict))

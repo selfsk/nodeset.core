@@ -22,14 +22,11 @@ class RoutingTest(unittest.TestCase):
         #self.node.startService()
 
         self.routing = self.dispatcher.routing
-        print self.dispatcher.routing.entries
         
     def tearDown(self):
         
         return self.dispatcher.stopService()
-        
 
-        
     def testRREntryDuplicate(self):
         entry = routing.RREntrySet()
         

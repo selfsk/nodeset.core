@@ -32,7 +32,7 @@ class Stats:
     
     def __init__(self):
         self._stats = {'msgcount': 0,
-                       'latency': {'min': 0.0, 'max': 0.0, 'avg': 0.0},
+                       'latency': [],#{'min': 0.0, 'max': 0.0, 'avg': 0.0},
                        'stime': None,
                        'etime': None}
         
@@ -64,13 +64,21 @@ class Stats:
     def updateLatency(self, val):
         cnt = self._stats['msgcount']
         
-        for l,v in self._stats['latency'].items():
-            self._stats['latency'][l] = self._update(l, cnt, v, val)
+        self._stats['latency'].append(float(val))
+        #for l,v in self._stats['latency'].items():
+        #    self._stats['latency'][l] = self._update(l, cnt, v, val)
        
     def __str__(self):
         msg_rate = self._stats['msgcount'] / (self._stats['etime'] - self._stats['stime'])
+        max_v = max(self._stats['latency'])
+        min_v = min(self._stats['latency'])
+        avg_v = max_v/float(self._stats['msgcount'])
         
-        return str("-STATS-\n%s\nrate: %s\n-EOF-" % (pprint.pformat(self._stats), msg_rate))
+        t = ['-STATS-', 'min: %f' % min_v, 'max: %f' % max_v, 'avg: %f' % avg_v, 'rate: %s' % msg_rate,
+             'msgcount: %d' % self._stats['msgcount'], '-EOF-']
+        
+        return str("\n".join(t))
+        #return str("-STATS-\n%s\nrate: %s\n-EOF-" % (pprint.pformat(self._stats), msg_rate))
      
         
         

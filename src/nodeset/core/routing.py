@@ -3,7 +3,7 @@ Dispatcher's routing classes
 """
 from zope.interface import implements
 
-from nodeset.core import interfaces
+from nodeset.core import interfaces, config
 from nodeset.common import log
 
 from nodeset.core.observer import Observer, ObserverCarousel
@@ -125,7 +125,8 @@ class RoutingTable:
         """
         return list of destination nodes
         """
-        log.msg("Looking up %s(instance=%s)" % (event_uri, node))
+        if config.Configurator['verbose']:
+            log.msg("Looking up %s(instance=%s)" % (event_uri, node))
         
         ev = EventURI(event_uri)
         
@@ -218,8 +219,9 @@ class RoutingTable:
                 
         if not self.entries.has_key(parsed.eventName):
             self.entries[parsed.eventName] = RREntrySet()
-            
-        log.msg("Adding route entry for %s" % str(parsed))
+           
+        if config.Configurator['verbose']: 
+            log.msg("Adding route entry for %s" % str(parsed))
         
         self.entries[parsed.eventName]\
                  .add(self.factory.getEntry(parsed.hostName, parsed.eventName, 
@@ -281,7 +283,8 @@ class RoutingTable:
         #XXX actual removing maybe could be pushed to background
         for n in nodes:
             key = "%s@%s/%s" % (n.getName(), n.getHost(), n.getEventName())
-            log.msg("Removing %s from routing table" % key)
+            if config.Configurator['verbose']:
+                log.msg("Removing %s from routing table" % key)
             self.entries[n.getEventName()].remove(n)
             
             
