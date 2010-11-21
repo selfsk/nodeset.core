@@ -12,6 +12,7 @@ class NodeTestCase(unittest.TestCase):
                      'listen': 'localhost:5444',
                      'dht-nodes': None,
                      'dht-port': None,
+                     'verbose': None,
                      }
         
         # minor hack to avoid 'xmpp' subCommand failures

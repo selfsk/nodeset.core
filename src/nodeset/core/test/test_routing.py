@@ -9,7 +9,8 @@ class RoutingTest(unittest.TestCase):
         c._config = {'dispatcher-url': 'pbu://localhost:5333/dispatcher',
                      'listen': 'pbu://localhost:5333/dispatcher',
                      'dht-nodes': None,
-                     'dht-port': None}
+                     'dht-port': None, 
+                     'verbose': None}
        
         c.subCommand = None
          
