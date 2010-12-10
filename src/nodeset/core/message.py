@@ -92,7 +92,7 @@ class _Message(Copyable, RemoteCopy):
         for k,v in d.items():
             Attribute(k, v)
             
-        print self.attrs
+        #print self.attrs
         
     def getStateToCopy(self):
         d = {}
@@ -174,5 +174,5 @@ class NodeMessage(object):
             
             #self.attrs[k] = v
             
-            
+        return self    
     

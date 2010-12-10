@@ -1,4 +1,4 @@
-from nodeset.core import node
+from nodeset.core import node, message
 
 from twisted.web import server, resource
 import uuid
@@ -57,22 +57,35 @@ class NodeSetSubscribe(resource.Resource):
             n.subscribe(ev, generic_handler, request)
         
         
-        #request.write('')
-        
         return server.NOT_DONE_YET
     
-    def render_POST(self, request):
-        
-        return server.NOT_DONE_YET
+    render_POST = render_GET
     
 class NodeSetPublish(resource.Resource):
-    def render_GET(self, request):
-        pass
     
     def render_POST(self, request):
         node = request.site.getNode()
-           
+
+        import simplejson
+        
+        json_msg = simplejson.loads(request.args['message'].pop())
+        
+        class WebPublishMessage(message.NodeMessage):
+            
+            def __init__(self):
+                message.NodeMessage.__init__(self)
+                
+                for k,v in json_msg.items():
+                    message.Attribute(k, v)
+                     
+        ev = request.args['event'].pop()
+         
+        node.publish(ev, msgClass=WebPublishMessage, **json_msg).addCallback(lambda _: request.finish())
+        
+        request.write("\r\n")
         return server.NOT_DONE_YET
+
+    render_GET = render_POST
     
 class NodeSetSite(server.Site):
     """

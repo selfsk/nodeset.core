@@ -176,6 +176,18 @@ class Node(Referenceable, service.Service):
         if not self.startDeferred.called: 
             self.startDeferred.callback(self)
     
+    def publishMessage(self, event_uri, msg):
+        """
+        publish already built message
+        @param event_uri: eventURI
+        @param msg: message instance
+        """
+        
+        if self.dispatcher:
+            d = self.dispatcher.callRemote('publish', event_uri, msg)
+            
+            return d
+        
     def publish(self, event_uri, msgClass=None, **kwargs):
         """
         publish event with message (fields are **kwargs)
