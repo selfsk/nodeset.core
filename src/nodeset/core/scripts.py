@@ -98,11 +98,18 @@ def run_example_node():
     application = ts.Application('nodeset-node')
     config = ExampleNodeOptions()
     
+   
     try:
         config.parseOptions()
         
-        from nodeset.core import node
-        
+        from nodeset.core import node, message
+   
+        class CustomMessage(message.NodeMessage):
+            
+            def __init__(self):
+                message.NodeMessage.__init__(self)
+                message.Attribute('payload')
+                 
         n = node.Node(name='simple-%s' % config.subCommand)
         
         if config.subCommand == 'subscriber':
@@ -114,7 +121,8 @@ def run_example_node():
             n.start().addCallback(lambda _: n.subscribe(config.subOptions['event']))
         else:
             # publisher node
-            n.start().addCallback(lambda _: n.publish(config.subOptions['event'], payload=config.subOptions['payload']))
+            n.start().addCallback(lambda _: n.publish(config.subOptions['event'], 
+                                                      msgClass=CustomMessage, payload=config.subOptions['payload']))
             
         n.setServiceParent(application)
     except usage.error, ue:
@@ -145,6 +153,9 @@ def run_web_node():
         
         site = web.NodeSetSite(root, n)
 
+        root.putChild('subscribe', web.NodeSetSubscribe())
+        root.putChild('publish', web.NodeSetPublish())
+        
         webservice = internet.TCPServer(config.subOptions['port'], site)
         webservice.setServiceParent(application)
         

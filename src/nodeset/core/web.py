@@ -1,6 +1,6 @@
 from nodeset.core import node
 
-from twisted.web import server
+from twisted.web import server, resource
 import uuid
 
 class WebBridgeNode(node.Node):
@@ -41,7 +41,39 @@ class WebBridgeNode(node.Node):
                 
         if len(self.events[event]) == 0:
             super(WebBridgeNode, self).unsubscribe(event)
-         
+
+class NodeSetSubscribe(resource.Resource):
+    
+    def render_GET(self, request):  
+        n = request.site.getNode()
+    
+        def generic_handler(msg, subId, request):
+            #print msg.toJson()
+            request.write(msg.toJson())
+            request.write("\r\n")
+            
+        for ev in request.args['event']:
+            #print ev
+            n.subscribe(ev, generic_handler, request)
+        
+        
+        #request.write('')
+        
+        return server.NOT_DONE_YET
+    
+    def render_POST(self, request):
+        
+        return server.NOT_DONE_YET
+    
+class NodeSetPublish(resource.Resource):
+    def render_GET(self, request):
+        pass
+    
+    def render_POST(self, request):
+        node = request.site.getNode()
+           
+        return server.NOT_DONE_YET
+    
 class NodeSetSite(server.Site):
     """
     Site class for Web resources handling with support of Node
