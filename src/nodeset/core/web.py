@@ -2,14 +2,29 @@ from nodeset.core import node, message
 
 from twisted.web import server, resource
 import uuid
+import simplejson
 
+class WebMessageBuilder(node.MessageBuilder):
+    """
+    Builder class for web messages from JSON
+    """
+    def createMessage(self, klass, json):
+        j = simplejson.loads(json)
+        _msg = super(WebMessageBuilder, self).createMessage(klass)
+        
+        for k,v in j.items():
+            _msg.setAttribute(k, v)
+            
+        return _msg
+    
 class WebBridgeNode(node.Node):
     """
     Special purpose Node, which should work in coop with NodeSetSite object, to perform publish/subscribe via HTTP
     """
     
     events = {}
-
+    builderClass = WebMessageBuilder
+    
     def onEvent(self, event, msg):
         for item in self.events[event]:
             subId = item[0]
@@ -48,12 +63,10 @@ class NodeSetSubscribe(resource.Resource):
         n = request.site.getNode()
     
         def generic_handler(msg, subId, request):
-            #print msg.toJson()
             request.write(msg.toJson())
             request.write("\r\n")
             
         for ev in request.args['event']:
-            #print ev
             n.subscribe(ev, generic_handler, request)
         
         
@@ -61,26 +74,18 @@ class NodeSetSubscribe(resource.Resource):
     
     render_POST = render_GET
     
+
+    
 class NodeSetPublish(resource.Resource):
     
     def render_POST(self, request):
         node = request.site.getNode()
 
-        import simplejson
-        
-        json_msg = simplejson.loads(request.args['message'].pop())
-        
-        class WebPublishMessage(message.NodeMessage):
-            
-            def __init__(self):
-                message.NodeMessage.__init__(self)
-                
-                for k,v in json_msg.items():
-                    message.Attribute(k, v)
-                     
+        msg = request.args['message'].pop()             
         ev = request.args['event'].pop()
-         
-        node.publish(ev, msgClass=WebPublishMessage, **json_msg).addCallback(lambda _: request.finish())
+        
+        
+        node.publish(ev, msgClass=message.NodeMessage, json=msg).addCallback(lambda _: request.finish())
         
         request.write("\r\n")
         return server.NOT_DONE_YET

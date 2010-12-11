@@ -16,12 +16,13 @@ from nodeset.common import log
 from zope.interface import implements 
 import copy
 
-class MessageBuilder:
+class MessageBuilder(object):
     """
     We can't pass any arguments to NodeMessage, due to foolscap limitations 
     (i.e U{RemoteCopy<http://foolscap.lothar.com/docs/api/foolscap.copyable.RemoteCopy-class.html>}). This factory
     should be used for NodeMessage
     """
+    __slots__ = ['createMessage']
     
     def createMessage(self, klass, **kwargs):
         """

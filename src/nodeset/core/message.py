@@ -77,7 +77,10 @@ class _Message(Copyable, RemoteCopy):
         
     def set(self, name, value):
         self.attrs[name].value = value
-      
+    
+    def setAttribute(self, name, value):
+        Attribute(name, value)
+        
     def toJson(self):
         d = {}
         
@@ -85,15 +88,7 @@ class _Message(Copyable, RemoteCopy):
             d[k] = v.getValue()
             
         return simplejson.dumps(d)
-         
-    def fromJson(self, json):
-        d = simplejson.loads(json)
-        
-        for k,v in d.items():
-            Attribute(k, v)
-            
-        #print self.attrs
-        
+
     def getStateToCopy(self):
         d = {}
         for k, v in self.attrs.items():
@@ -166,13 +161,4 @@ class NodeMessage(object):
             
         return simplejson.dumps(j_dict)
     
-    def fromJson(self, json):
-        j_dict = simplejson.loads(json)
-        
-        for k, v in j_dict.items():
-            Attribute(k, v)
-            
-            #self.attrs[k] = v
-            
-        return self    
     
