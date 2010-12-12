@@ -61,10 +61,30 @@ class NodeSetSubscribe(resource.Resource):
     
     def render_GET(self, request):  
         n = request.site.getNode()
-    
+        verifier = request.site.getVerifier()
+        
+        use_key = request.getHeader('x-verify-key')
+        is_verified = True
+        try:
+            signature = request.args['signature'].pop()
+            timestamp = request.args['timestamp'].pop()
+        
+            
+            if verifier:
+                is_verified = verifier.verify(use_key, timestamp, signature)
+        except KeyError:
+            pass
+        
+        if not is_verified:
+            return resource.ForbiddenResource("Signature invalid")
+        
         def generic_handler(msg, subId, request):
+            request.setHeader('content-type', 'application/json')
             request.write(msg.toJson())
             request.write("\r\n")
+            
+            if request.clientproto == "HTTP/1.0":
+                request.finish()
             
         for ev in request.args['event']:
             n.subscribe(ev, generic_handler, request)
@@ -80,12 +100,23 @@ class NodeSetPublish(resource.Resource):
     
     def render_POST(self, request):
         node = request.site.getNode()
-
+        verifier = request.site.getVerifier()
+        
         msg = request.args['message'].pop()             
         ev = request.args['event'].pop()
+
+        # by default all messages are verified
+        is_verified = True
         
-        
-        node.publish(ev, msgClass=message.NodeMessage, json=msg).addCallback(lambda _: request.finish())
+        try:
+            signature = request.args['signature'].pop()
+            if verifier:
+                is_verified = verifier.verify(ev, msg, signature)
+        except KeyError:
+            pass
+            
+        if is_verified:
+            node.publish(ev, msgClass=message.NodeMessage, json=msg).addCallback(lambda _: request.finish())
         
         request.write("\r\n")
         return server.NOT_DONE_YET
@@ -101,6 +132,14 @@ class NodeSetSite(server.Site):
         server.Site.__init__(self, resource, **kw)
         
         self.node = node
+        # we need to verify that publish/subscribe are coming from permitted users
+        self.verifier = None
+        
+    def getVerifier(self):
+        return self.verifier
+    
+    def setVerifier(self, verifier):
+        self.verifier = verifier
         
     def setNode(self, node):
         self.node = node

@@ -47,12 +47,13 @@ class WebBridgeOptions(usage.Options):
     
     optParameters = [
                      ['path', None,'/var/www/rpy', '.rpy files path'],
-                     ['port', None, 8080, 'web listen port', int]
+                     ['port', None, 8080, 'web listen port', int],
+                     ['logfile', None, 'nodeset-web.log', 'HTTP requests logfile']
                      ] 
 
 class WebNodeOptions(NodeSetAppOptions):
     subCommands = [['web', None, WebBridgeOptions, 'web bridge options']]
-    
+   
 def run_shell():
     from twisted.manhole.telnet import ShellFactory
     from nodeset.core import node
@@ -140,18 +141,23 @@ def run_web_node():
     try:
         config.parseOptions()
 
-        from nodeset.core import web
-        from twisted.web import static, script
 
+        from twisted.web import static, script, resource
+
+        from nodeset.core import web
         n = web.WebBridgeNode()
         n.setServiceParent(application)
      
         n.start()
-        root = static.File(config.subOptions['path'])
-        root.ignoreExt(".rpy")
-        root.processors = {'.rpy': script.ResourceScript}
         
-        site = web.NodeSetSite(root, n)
+        if config.subOptions.has_key('path'):
+            root = static.File(config.subOptions['path'])
+            root.ignoreExt(".rpy")
+            root.processors = {'.rpy': script.ResourceScript}
+        else:
+            root = resource.Resource()
+        
+        site = web.NodeSetSite(root, n, logPath=config.subOptions['logfile'])
 
         root.putChild('subscribe', web.NodeSetSubscribe())
         root.putChild('publish', web.NodeSetPublish())
@@ -167,8 +173,5 @@ def run_web_node():
     else:
         runApp(config, application)
     
-    #n.start()
-    #n.setServiceParent(Application)
- 
 if __name__ == '__main__':
     run_dispatcher()
