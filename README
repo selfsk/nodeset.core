@@ -4,18 +4,21 @@ Pub/Sub framework for distributed services, nodeset.core is based on Foolscap[1]
 Each "node" is a separate unix process, and all events delivering are performed by *dispatcher*, 
 the special unix process (also based on foolscap RPC).
 
+* Features
+ - Distributed 
+  * nodes and dispatcher(s) could be anywhere in network. 
+ - Stateless
+  * dispatcher is completely stateless (after crash/restart the state of dispatcher will be the same as before).
+  * nodes share nothing between each other, and restores all subscriptions after dispatcher reconnect
+ - HTTP support
+  * nodeset-web helps to implement HTTP API based on nodeset.core pub/sub framework
+ - Monitoring (built in monitoring support [WiP])
+
 * nodeset.core components:
 1. dispatcher - runs on its own, just listen for incoming foolscap RPC calls, and trace which nodes are available,
     and its health.
 2. node - Each Node can act as publisher, as well as subscribers. 
  2.1 node collection - group nodes under one listen port
-
-* Features
- - Distributed (each host has only one dispatcher, but many nodes. Events can be delivered between hosts)
- - Stateless (any node doesn't rely to dispatcher, if dispatcher will die, it does not affect nodes, as well as
-     death of any nodes, does not affect other nodes and dispatcher)
- - Web Integration (you can work with nodeset.core pub/sub from you twisted.web .rpy files [WiP])
- - Monitoring (built in monitoring support [WiP])
 
 * Install (easy_install based)
 
@@ -31,10 +34,14 @@ To run any of example, first you must run dispatcher:
  - nodeset-dispatcher [options]
 
  * Node usage example
-  - python mnode.py [options]
-  - python mnode_publish.py [options]
+  - nodeset-node [options]
+  - nodeset-node publisher [options]
+  - nodeset-node subscriber [options]
  
-Options for call is similar to twistd tool in twisted framework, base code was taken from twisted, just use --help to
+ * Web node usage example
+  - nodeset-web web [options]
+
+  Options for call is similar to twistd tool in twisted framework, base code was taken from twisted, just use --help to
 find out available options.
 
 Links:
