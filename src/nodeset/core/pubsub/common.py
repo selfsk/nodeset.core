@@ -233,11 +233,11 @@ class ConfigureMessage(Message):
 class DeleteNodeMessage(PubSubMessage):
     
     def __init__(self, jid_to, jid_from, node):
-        PubSubMessage.__init__(self, jid_to, jid_from, 'set')
+        PubSubMessage.__init__(self, jid_to, jid_from, 'set', 'http://jabber.org/protocol/pubsub#owner')
         
         delete = Message('delete', None, id=False)
         delete['node'] = node
         
-        self.addChild(delete)
+        self.pubsub.addChild(delete)
 
     

@@ -180,6 +180,15 @@ class XmppAgent(XmppInstance, service.Service):
          
         return self.xmlstream.send(create)
      
+    def deleteNode(self, pubsub, node):
+        assert(self.xmlstream != None)
+        
+        delete = DeleteNodeMessage(pubsub, self.jid.userhost(), node)
+    
+        log.msg("Deleting node %s" % delete.toXml())
+            
+        return self.xmlstream.send(delete)
+    
     def createNodeAndConfigure(self, pubsub, node):
         """
         Defautl configuration for node

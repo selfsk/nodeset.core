@@ -22,7 +22,8 @@ class XmppOptions(usage.Options):
     optFlags = [
                 ['subscriptions', None, 'subscription list'],
                 ['unsubscribe', None, 'unsubscribe by node'],
-                ['subscribe', None, 'subscribe to node']
+                ['subscribe', None, 'subscribe to node'],
+                ['delete', None, 'delete node']
                 ]
 
 class XmppAppOptions(NodeSetAppOptions):
@@ -53,7 +54,9 @@ def run_sub():
             d.addCallbac(lambda _: bot.unsubscribe(config.subOptions['pubsub'], config.subOptions['node'], config.subOptions['subId']))
         elif config.subOptions['subscribe']:
             d.addCallback(lambda _: bot.subscribe(config.subOptions['pubsub'], config.subOptions['node']))
-        
+        elif config.subOptions['delete']:
+            d.addCallback(lambda _: bot.deleteNode(config.subOptions['pubsub'],config.subOptions['node']))
+            
         def _err(fail):
             print fail
             
