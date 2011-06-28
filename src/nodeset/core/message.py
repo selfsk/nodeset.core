@@ -85,7 +85,9 @@ class _Message(Copyable, RemoteCopy):
         d = {}
         
         for k,v in self.attrs.items():
-            d[k] = v.getValue()
+            # ignore all hidden fields
+            if not k.startswith('_'):
+                d[k] = v.getValue()
             
         return simplejson.dumps(d)
 
@@ -157,7 +159,8 @@ class NodeMessage(object):
         j_dict = {}
         
         for k,v in self.attrs.items():
-            j_dict[k] = v.getValue()
+            if not k.startswith('_'):
+                j_dict[k] = v.getValue()
             
         return simplejson.dumps(j_dict)
     
