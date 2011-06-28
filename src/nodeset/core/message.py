@@ -58,23 +58,14 @@ class Attribute(object):
         """
         return self.value
     
-class _Message(Copyable, RemoteCopy):
+class _BaseMessage(object):
     """
-    Foolscap message description, we're trying to wrap any NodeSet message into this one
+    Base class for message: _Message and NodeMessage
     """
-    typeToCopy = copytype = 'node-message-0xdeadbeaf'
-    
     def __init__(self):
-        self.attrs = {}
-    
-    def __getattr__(self, name):
-        if self.attrs.has_key(name):
-            return self.attrs[name]
-        elif self.__dict__.has_key(name):
-            return self.__dict__[name]
-        else:
-            raise KeyError("getattr() - Class %s has no property %s" % (self, name))
-        
+        # NodeMessage will call __setattr__ on __init__, self.attrs raise KeyError
+        self.__dict__['attrs'] = {}
+            
     def set(self, name, value):
         self.attrs[name].value = value
     
@@ -91,6 +82,27 @@ class _Message(Copyable, RemoteCopy):
             
         return simplejson.dumps(d)
 
+    def fromJson(self, json):
+        d = simplejson.loads(json)
+        for k,v in d.items():
+            Attribute(k, v)
+    
+    
+class _Message(_BaseMessage, Copyable, RemoteCopy):
+    """
+    Foolscap message description, we're trying to wrap any NodeSet message into this one
+    """
+    typeToCopy = copytype = 'node-message-0xdeadbeaf'
+    
+    def __getattr__(self, name):
+        if self.attrs.has_key(name):
+            return self.attrs[name]
+        elif self.__dict__.has_key(name):
+            return self.__dict__[name]
+        else:
+            raise KeyError("getattr() - Class %s has no property %s" % (self, name))
+        
+
     def getStateToCopy(self):
         d = {}
         for k, v in self.attrs.items():
@@ -102,7 +114,6 @@ class _Message(Copyable, RemoteCopy):
         for k,v in state.items():
             item = Attribute(k)
             item.value = v
-            
 
     def __eq__(self, obj):
         for k,v in self.attrs.items():
@@ -117,7 +128,7 @@ class _Message(Copyable, RemoteCopy):
         return True
             
             
-class NodeMessage(object):
+class NodeMessage(_BaseMessage):
     """
     Base class for NodeSet messages
     """
@@ -128,7 +139,7 @@ class NodeMessage(object):
     #attrs = {'_delivery_mode': Attribute('_delivery_mode', 'all')}
      
     def __init__(self):
-        self.__dict__['attrs'] = {}
+        _BaseMessage.__init__(self)
         
         Attribute('_delivery_mode', 'all')
       
@@ -154,14 +165,5 @@ class NodeMessage(object):
         else:
             raise KeyError("setattr() - Class %s has no property %s" % (self, name))    
         
-    
-    def toJson(self):
-        j_dict = {}
-        
-        for k,v in self.attrs.items():
-            if not k.startswith('_'):
-                j_dict[k] = v.getValue()
-            
-        return simplejson.dumps(j_dict)
     
     

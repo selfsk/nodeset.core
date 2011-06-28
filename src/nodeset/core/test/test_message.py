@@ -58,3 +58,21 @@ class MessageTest(unittest.TestCase):
             
         self.assertTrue(m.field1 == 'value1')
         self.assertTrue(m.field2 == 'value2')
+        
+    def testMessageToJson(self):
+        
+        m = self.builder.createMessage(TMsg, field1='value1')
+        json = m.toJson()
+        
+        import simplejson
+        
+        self.assertTrue({'field1': 'value1', 'field2': 'value2', 'payload': None} == simplejson.loads(json))
+        
+        new_msg = TMsg()
+        new_msg.fromJson(json)
+        
+        self.assertTrue(new_msg.field1 == 'value1')
+        self.assertTrue(new_msg.field2 == 'value2')
+        self.assertTrue(new_msg.payload == None)
+        self.assertTrue(new_msg._delivery_mode == 'all')
+        
