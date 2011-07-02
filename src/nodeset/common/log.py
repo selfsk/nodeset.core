@@ -19,28 +19,27 @@ class NodeSetLog(logfile.DailyLogFile):
         
     def shouldRotate(self):
         return True
-class NodeSetLogStdout(log.FileLogObserver):
-        
-    def emit(self, eventDict):
-        text = log.textFromEventDict(eventDict)
-        
-        if eventDict['system'] == '-':
-            self.write("%s\n" % text)
-            self.flush()
+
         
 class NodeSetLogObserver(log.FileLogObserver):
     
-    def __init__(self, *args, **kwargs):
-        log.FileLogObserver.__init__(self, *args, **kwargs)
+    def __init__(self, f, level):
+        log.FileLogObserver.__init__(self, f)
 
+        self.level = level
+        
     def emit(self, eventDict):
         text = log.textFromEventDict(eventDict)
+        
         if text is None:
             return
         
         if not eventDict.has_key('logLevel'):
             eventDict['logLevel'] = 'INFO'
         elif logLevel.has_key(eventDict['logLevel']):
+            if eventDict['logLevel'] < self.level:
+                return
+            
             eventDict['logLevel'] = logLevel[eventDict['logLevel']]
             
         timeStr = self.formatTime(eventDict['time'])
@@ -50,7 +49,30 @@ class NodeSetLogObserver(log.FileLogObserver):
 
         util.untilConcludes(self.write, timeStr + " " + msgStr)
         util.untilConcludes(self.flush)  # Hoorj!
+
+class NodeSetLogStdout(NodeSetLogObserver):
         
+    def emit(self, eventDict):
+        text = log.textFromEventDict(eventDict)
+        
+        lvl = eventDict.get('logLevel')
+        
+        if lvl:
+            if lvl < self.level:
+                return
+            else:
+                eventDict['logLevel'] = logLevel[eventDict['logLevel']]
+        else:
+            eventDict['logLevel'] = 'INFO'
+
+        timeStr = self.formatTime(eventDict['time'])
+        
+        if eventDict['system'] == '-':
+            eventDict['text'] = text
+            
+            self.write(timeStr + " %(logLevel)s %(text)s\n" % eventDict)
+            self.flush()
+                    
 def _get_instance():
     try:
         import sys

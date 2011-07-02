@@ -3,6 +3,8 @@ from twisted.python import usage
 
 
 from nodeset.common.twistedapi import run, NodeSetAppOptions, runApp
+from nodeset.common import log
+import logging
 
 class PubSubOptions(usage.Options):
     optParameters = [
@@ -99,7 +101,6 @@ def run_example_node():
     application = ts.Application('nodeset-node')
     config = ExampleNodeOptions()
     
-   
     try:
         config.parseOptions()
         
@@ -116,7 +117,8 @@ def run_example_node():
         if config.subCommand == 'subscriber':
             # subscriber node
             def _print(e, m):
-                print "Message arrived: %s" % m.toJson()
+                log.msg("Message arrived")
+                log.msg("JSON: %s" % m.toJson(), logLevel=logging.DEBUG)
                 
             n.onEvent = _print
             n.start().addCallback(lambda _: n.subscribe(config.subOptions['event']))

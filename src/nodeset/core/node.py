@@ -157,6 +157,7 @@ class Node(Referenceable, service.Service):
         
         Reconnector.verbose = verbose
         self.connector = Reconnector(self.dispatcher_url, self._gotDispatcher, (), {})
+        self.connector.maxDelay = 300
         self.connector.startConnecting(self.tub)
       
     def _dropConnector(self):

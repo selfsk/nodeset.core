@@ -1,20 +1,28 @@
 
 from twisted.application import app
 from twisted.python import usage
-from twisted.python.log import ILogObserver
+from twisted.python.log import ILogObserver, startLoggingWithObserver
 from twisted.python.util import uidFromString, gidFromString
 #from twisted.python.runtime import platformType
 
 #from twisted.internet import reactor
 
-import sys
+import sys, os
 
 from twisted.scripts._twistd_unix import \
-            UnixApplicationRunner as _SomeApplicationRunner, _umask
+            UnixApplicationRunner as _SomeApplicationRunner, _umask, UnixAppLogger
     
 from nodeset.core.config import Configurator
 from nodeset.common import log
 from nodeset.core import copyright
+
+import logging
+
+def _logLevel(val):
+    if val.upper() not in ['INFO', 'DEBUG', 'WARN', 'CRIT', 'NOTICE']:
+        raise ValueError("invalid logLevel %s" % val.upper())
+    
+    return val.upper()
 
 class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
     """
@@ -51,6 +59,7 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
                       "The (octal) file creation mask to apply.", _umask],
                      ['logfile','l', None,
                       "log to a specified file, - for stdout"],
+                     ['loglevel', None, 'info', 'logLevel, one of (info,warn,debug,crit etc.)', _logLevel],
                      ['rundir','d','.',
                       'Change to a supplied directory before running'],
                        ['profile', 'p', None,
@@ -75,11 +84,29 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
         print "nodeset.core version: %s" % copyright.version
         super(NodeSetAppOptions, self).opt_version()
        
+class NodeSetAppLogger(UnixAppLogger):
+    
+    def _getLogObserver(self):
+        if self._nodaemon:
+            stream = sys.stdout
+        else:
+            if not self._logfilename:
+                self._logfilename = 'nodeset-core.log'
+                
+            stream = log.NodeSetLog(os.path.basename(self._logfilename), os.path.dirname(self._logfilename) or '.')
+            
+        lvl = getattr(logging, Configurator['loglevel'])
+        
+        return log.NodeSetLogObserver(stream, lvl).emit
+    
 class NodeSetApplicationRunner(_SomeApplicationRunner):
     """
     Adoption of U{UnixApplicationRunner<http://twistedmatrix.com/documents/9.0.0/api/twisted.scripts._twistd_unix.UnixApplicationRunner.html>} 
     for NodeSet, createOrGetApplication redefined only
     """
+    
+    loggerFactory = NodeSetAppLogger
+    
     def createOrGetApplication(self):
         """
         Modified to return application instance, early defined
@@ -97,11 +124,14 @@ def runApp(config, application):
     runner = NodeSetApplicationRunner(config)
     runner.application = application
     
-    if config['logfile']:
-        import os
-        logfile = log.NodeSetLog(os.path.basename(config['logfile']), os.path.dirname(config['logfile']) or '.')
-        application.setComponent(ILogObserver, log.NodeSetLogObserver(logfile).emit)
+    #level = getattr(logging, config['loglevel'])
+    
+    #if config['logfile']:
+    #    import os
+    #    logfile = log.NodeSetLog(os.path.basename(config['logfile']), os.path.dirname(config['logfile']) or '.')
+    #    application.setComponent(ILogObserver, log.NodeSetLogObserver(logfile, level).emit)
 
+        
     Configurator._config = config
     
     runner.run()
