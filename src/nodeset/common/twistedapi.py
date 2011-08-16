@@ -95,7 +95,7 @@ class NodeSetAppLogger(UnixAppLogger):
                 
             stream = log.NodeSetLog(os.path.basename(self._logfilename), os.path.dirname(self._logfilename) or '.')
             
-        lvl = getattr(logging, Configurator['loglevel'])
+        lvl = getattr(logging, Configurator['loglevel'].upper())
         
         return log.NodeSetLogObserver(stream, lvl).emit
     
