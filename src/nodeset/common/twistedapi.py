@@ -18,11 +18,37 @@ from nodeset.core import copyright
 
 import logging
 
+import syslog as py_syslog
+
+from twisted.python import syslog
+
+
 def _logLevel(val):
     if val.upper() not in ['INFO', 'DEBUG', 'WARN', 'CRIT', 'NOTICE']:
         raise ValueError("invalid logLevel %s" % val.upper())
     
     return val.upper()
+
+def _checkSyslogFacility(val):
+    
+    vu = val.upper()
+    
+    if hasattr(py_syslog, vu):
+        return getattr(py_syslog, vu)
+    else:
+        raise ValueError("invalid syslog(3) facility")
+    
+def _checkSyslogOptions(val):
+    
+    d = []
+    for i in val.split(","):
+        d.append(_checkSyslogFacility(i))
+        
+    bitfield_opts = 0
+    for i in d:
+        bitfield_opts |= i
+        
+    return bitfield_opts
 
 class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
     """
@@ -47,6 +73,8 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
                ]
      
     optParameters = [
+                     ['facility', None, syslog.DEFAULT_FACILITY, 'syslog facility', _checkSyslogFacility],
+                     ['options', None, syslog.DEFAULT_OPTIONS, 'syslog options', _checkSyslogOptions],
                      ['prefix', None,'twisted',
                       "use the given prefix when syslogging"],
                      ['pidfile','','twistd.pid',
@@ -86,7 +114,18 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
        
 class NodeSetAppLogger(UnixAppLogger):
     
+    def __init__(self, options):
+        UnixAppLogger.__init__(self, options)
+        
+        self._syslogOptions = options.get('options', syslog.DEFAULT_OPTIONS)
+        self._syslogFacility = options.get('facility', syslog.DEFAULT_FACILITY)
+        
+        
     def _getLogObserver(self):
+        
+        if self._syslog:
+            return syslog.SyslogObserver(self._syslogPrefix, self._syslogOptions, self._syslogFacility).emit
+        
         if self._nodaemon:
             stream = sys.stdout
         else:
