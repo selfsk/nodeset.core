@@ -1,7 +1,8 @@
 
 from twisted.application import app
 from twisted.python import usage
-from twisted.python.log import ILogObserver, startLoggingWithObserver
+#from twisted.python.log import ILogObserver, startLoggingWithObserver
+from twisted.application import internet
 from twisted.python.util import uidFromString, gidFromString
 #from twisted.python.runtime import platformType
 
@@ -96,7 +97,8 @@ class NodeSetAppOptions(usage.Options, app.ReactorSelectionMixin):
                       "Name of the profiler to use (%s)." %
                       ", ".join(app.AppProfiler.profilers)],
                      ['dispatcher-url', None, 'pbu://localhost:5333/dispatcher', "Dispatcher's URL"],
-                     ['listen', None, 'localhost:5444',  "Node's listen address (i.e. host:port)"]
+                     ['listen', None, 'localhost:5444',  "Node's listen address (i.e. host:port)"],
+                     ['manhole', None, None, 'run manhole service on specified port', int]
                      ]
 
 
@@ -163,6 +165,26 @@ def runApp(config, application):
     runner = NodeSetApplicationRunner(config)
     runner.application = application
     
+    if config['manhole']:
+        from twisted.manhole.telnet import ShellFactory
+        
+        sfactory = ShellFactory()
+        #sfactory.namespace['node'] = n
+        #sfactory.namespace['service'] = application
+    
+        #n.setShell(sfactory)
+        sfactory.setService(application)
+        sfactory.namespace['services'] = []
+        for v in application._adapterCache.values():
+            
+            if hasattr(v, 'services'):
+                for s in v.services:
+                    if s not in sfactory.namespace['services']:
+                        sfactory.namespace['services'].append(s)
+            
+        shell = internet.TCPServer(config['manhole'], sfactory)
+        shell.setServiceParent(application)
+        
     #level = getattr(logging, config['loglevel'])
     
     #if config['logfile']:
