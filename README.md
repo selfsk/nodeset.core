@@ -4,6 +4,45 @@ Pub/Sub framework for distributed services, nodeset.core is based on [Foolscap][
 Each "node" is a separate unix process, and all events delivering are performed by *dispatcher*, 
 the special unix process (also based on foolscap RPC).
 
+# Code
+Simple subscriber. Publisher code is in example/simple/pub.py
+
+    from nodeset.core import message, node, utils
+
+    class SimpleMessage(message.NodeMessage):
+
+    def __init__(self):
+      message.NodeMessage.__init__(self)
+      message.Attribute('field1')
+
+
+    class SimpleNode(node.Node):
+
+    @utils.catch('some_event')
+    def callbackForWhatever(self, msg):
+      print "EVENT: %s" % msg.toJson()
+
+
+    from nodeset.core import utils
+    from core import SimpleNode
+
+    def do_subscribe(node, event_name):
+      print "Subscribing for %s event" % event_name
+      node.subscribe(event_name)
+ 
+    def _err(failure):
+      print failure
+
+    from twisted.internet import reactor
+
+    utils.setDefaultOptions()
+
+    node = SimpleNode(name='nodeAbc', port=6555)
+    node.start().addCallback(do_subscribe, 'some_event').addErrback(_err)
+    node.startService()
+
+    reactor.run()
+
 # Features
 
 * Distributed -  nodes and dispatcher(s) could be anywhere in network. 
@@ -28,6 +67,8 @@ python setup.py install (or develop for development)
 
 There are few examples of NodeSet framework usage:
 
+ * example/simple - pub/sub simple implementation
+
  * examples/node.py - example of NodeCollection, as well as Node usage. Subscription example
  * examples/mnode_publish.py - example of publishing
 
@@ -46,7 +87,6 @@ To run any of example, first you must run dispatcher:
   Options for call is similar to twistd tool in twisted framework, base code was taken from twisted, just use --help to
 find out available options.
 
-### Links:
 [1]: http://foolscap.lothar.com/trac
 [2]: http://twistedmatrix.com
 

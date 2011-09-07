@@ -1,8 +1,13 @@
-from nodeset.core import node
+from nodeset.core import node, message
 from nodeset.common.twistedapi import run
 
 from twisted.application import service
 from twisted.internet import reactor
+
+class TMessage(message.NodeMessage):
+    def __init__(self):
+        message.NodeMessage.__init__(self)
+        message.Attribute('payload')
 
 class SimpleNode(node.Node):
     
@@ -13,7 +18,7 @@ def _print(rval):
     print rval
     
 def _publish(n, name, payload):
-    n.publish(name, payload=payload).addCallback(_print)
+    n.publish(name, TMessage, payload=payload).addCallback(_print)
     
 def publish_main():
     n = SimpleNode(5688)

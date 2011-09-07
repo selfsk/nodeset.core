@@ -1,4 +1,4 @@
-from nodeset.core import node
+from nodeset.core import node, utils
 from nodeset.common.twistedapi import run
 
 from twisted.application import service
@@ -21,20 +21,22 @@ class SimpleNode1(node.Node):
         print "%s, #1 got event %s, msg %s" % (self, event, msg)
         #raise Exception("#1 exception")
         
-        self.publish('event_2', payload='payload_inmulti').addCallback(self._print)
-        self.publish('remote_event', payload='payload').addCallback(self._print)
+        #self.publish('event_2', payload='payload_inmulti').addCallback(self._print)
+        #self.publish('remote_event', payload='payload').addCallback(self._print)
         
         return "#1 return"
     
 class SimpleBlockNode(node.Node):
-    def onEvent(self, event_name, msg):
-        print "Blocking event %s" % event_name
+    
+    @utils.catch('event_block')
+    def handleEvent(self, msg):
+        #print "Blocking event %s" % event_name
         #return "return event_%s" % event.name
-        
+        print "block"
         time.sleep(5)
         print "Go ahead!"
         #raise Exception("Block exception")
-        return "block_%s" % event_name
+        #return "block_%s" % event_name
 
 def listen_main():
     multi = node.NodeCollection(5788)

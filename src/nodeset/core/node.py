@@ -433,7 +433,7 @@ class NodeCollection(Node):
         do onEvent
         """
         try:
-            defer.callback(node.onEvent(event, msg))
+            defer.callback(node.remote_event(event, msg))
         except Exception, e:
             defer.errback(e)
         
