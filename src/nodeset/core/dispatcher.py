@@ -12,8 +12,15 @@ import simplejson
 from nodeset.core import routing, config, message
 from nodeset.common import log
 
+class DispatcherStats(object):
+    
+    def __init__(self):
+        self.pubs = 0
+        self.subs = 0
 
-
+    def toJSON(self):
+        return simplejson.dumps({"subs": self.subs, "pubs": self.pubs})
+    
 class EventDispatcher(Referenceable, service.Service):
     """ 
     EventDispatcher instance is running on each host as separate process. Remote Nodes can subscribe for events
@@ -28,6 +35,7 @@ class EventDispatcher(Referenceable, service.Service):
         self.listen_url = listen
         self.host = host
         self.port = port
+        self.stats = DispatcherStats()
         
         self.tub.listenOn('tcp:%d' % port)
         self.tub.setLocation('%s:%d' % (host, port))
@@ -153,6 +161,12 @@ class EventDispatcher(Referenceable, service.Service):
         return [x.getNode() for x in self.routing.get(stream_name)]
       
     
+    def remote_get_stats(self):
+        """
+        Foolscap RPC method, returns current stats for dispatcher
+        """
+        return self.stats.toJSON()
+    
     def _debug_print(self, data):
         print "<-> %s" % data
         
@@ -164,6 +178,7 @@ class EventDispatcher(Referenceable, service.Service):
              
             #TODO: implement call() in Node
             n.getNode().callRemote(method, event_name, msg).addErrback(err_back, *args)
+            self.stats.pubs += 1
             
             if msg._delivery_mode != 'all':
                 break
@@ -189,6 +204,7 @@ class EventDispatcher(Referenceable, service.Service):
         log.msg("subscription to %s by %s" % (event_name, node), logLevel=logging.INFO)
   
         self.routing.add(event_name, node, name)
+        self.stats.subs += 1
         
         if not self.heartbeat.has(node):
             #FIXME: workaround for missing monitor, foolscap does not pass ivars

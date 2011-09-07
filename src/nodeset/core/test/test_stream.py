@@ -1,6 +1,6 @@
 from nodeset.core import node
 
-from twisted.internet import defer
+from twisted.internet import defer, reactor
 
 from common import NodeTestCase
 
@@ -40,7 +40,10 @@ class StreamNodeTestCase(NodeTestCase):
         self.receiver.stopService()
         self.sender.stopService()
         
+        d = defer.Deferred()
+        reactor.callLater(1, d.callback(None))
         
+        return d
         
     def testStreamNode(self):
         def checkStreamData(push_ret, rcv):

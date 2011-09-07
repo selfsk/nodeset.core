@@ -9,9 +9,10 @@ from twisted.application import service
 from twisted.internet import defer
 from twisted.python import components
 
-from nodeset.core import interfaces, stream, message, config
+from nodeset.core import interfaces, stream, message, config, utils
 #from nodeset.common.log import setLogger
 from nodeset.common import log
+import logging
 
 from zope.interface import implements 
 import copy
@@ -49,7 +50,7 @@ class MessageBuilder(object):
         return _msg
 
   
-class Node(Referenceable, service.Service):
+class _Node(Referenceable, service.Service):
     """
     Main atom of NodeSet framework, communication is build on top of simple interface:
      - publish
@@ -301,8 +302,22 @@ class Node(Referenceable, service.Service):
         """
         #log.msg("someone is heartbeating me")
         return True
+  
+@utils.DynamicNode
+class Node(_Node):
+    def remote_event(self, event, msg, bubble=False):
+        # doing usual stuff, but maybe someone want to .catch(event)
+        super(Node, self).remote_event(event, msg, bubble)
+
+        if self.__events__.has_key(event):
+            log.msg("__dyn_event[%s] = %s" % (event, self.__events__[event]), logLevel=logging.DEBUG)
+            callable, args, kwargs = self.__events__[event]
     
-class StreamNode(Node):
+            return callable(self, msg, *args, **kwargs)
+
+        return
+     
+class StreamNode(_Node):
     """
     Special case of Node, which supports streaming of any data
     @ivar streamClass: Stream handling class
