@@ -1,15 +1,4 @@
-
-def DynamicNode(cls):
-    """
-    Node class creation decorator, searching for 'catch'es in methods
-    """
-    cls.__events__ = {}
-    for item in cls.__dict__.itervalues():
-        if hasattr(item, '__event_handler__'):
-            ev_name, args, kw = getattr(item, '__event_handler__')
-            cls.__events__[ev_name] = [item, args, kw]
-            
-    return cls
+from nodeset.core import config
 
 def catch(ev):
     """
@@ -20,3 +9,17 @@ def catch(ev):
         return fn
     
     return _inner
+
+
+def setDefaultOptions():
+    c = config.Configurator()
+    c._config = {'dispatcher-url': 'pbu://localhost:5333/dispatcher',
+                     'listen': 'localhost:5444',
+                     'dht-nodes': None,
+                     'dht-port': None,
+                     'verbose': None,
+                     }
+        
+    # minor hack to avoid 'xmpp' subCommand failures
+    c.subCommand = None
+

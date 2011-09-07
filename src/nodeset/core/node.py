@@ -303,8 +303,29 @@ class _Node(Referenceable, service.Service):
         #log.msg("someone is heartbeating me")
         return True
   
-@utils.DynamicNode
 class Node(_Node):
+    
+    def __new__(cls, *args, **kw):
+        """
+        Customizing Node subclass creation. Catching method decorators
+        """
+        
+        # creating new instance (cls is just a Class)
+        self = super(Node, cls).__new__(cls)
+        
+        # will handle our event handlers here
+        self.__events__ = {}
+        
+        # loop over cls (not instance, instance's __init__ has not been called yet)
+        for item in cls.__dict__.values():
+            if hasattr(item, '__event_handler__'):
+                ev_name = getattr(item, '__event_handler__')
+                ev_name, args, kw = getattr(item, '__event_handler__')
+                # our handlers could have args and kwargs as well
+                self.__events__[ev_name] = [item, args, kw]
+            
+        return self
+    
     def remote_event(self, event, msg, bubble=False):
         # doing usual stuff, but maybe someone want to .catch(event)
         super(Node, self).remote_event(event, msg, bubble)

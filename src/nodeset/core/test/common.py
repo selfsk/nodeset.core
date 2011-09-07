@@ -62,7 +62,6 @@ class TestNode(node.Node):
     def onEvent(self, event, msg):
         self.dqueue.put((event, msg))
 
-@utils.DynamicNode
 class TestDynNode(node.Node):
 
     @utils.catch('event_one')
