@@ -121,8 +121,8 @@ class _Node(Referenceable, service.Service):
             self.host, self.port = self.config['listen'].split(':')
         
         self.tub = Tub()
-        self.tub.listenOn('tcp:%d' % int(self.port))
-        self.tub.setLocation('%s:%d' % (self.host, int(self.port)))
+        self.tub.listenOn('tcp:%d' % int(0))
+        self.tub.setLocation('%s:%d' % (self.host, int(0)))
         self.tub.registerReference(self, self.name)
         
         self.tub.startService()
